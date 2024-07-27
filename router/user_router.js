@@ -11,4 +11,4 @@ router.delete('/role/:id',Usercontroller.delteUser)
 router.post('/auth',Usercontroller.auth)
 
 
-module.exports = router
+module.exports = router;
