@@ -1,13 +1,11 @@
 const {Model} = require('objection')
-
 const knex = require('../setting/db')
 
 Model.knex(knex)
 
-class User extends Model {
+class groupp_product extends Models{
     static get tableName(){
-        return 'user'
+        return 'group_praduct'
     }
 }
-
-module.exports = User
+module.exports = groupp_product
