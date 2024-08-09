@@ -1,10 +1,10 @@
 const {Model} = require('objection')
-const kenx = require('../setting/db')
+const knex = require('../setting/db')
 
 Model.knex(knex)
 
 class product extends Model{
-    static get tableName{
+    static get tableName(){
         return 'product'
     }
 }

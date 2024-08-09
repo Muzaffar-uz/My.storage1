@@ -1,12 +1,12 @@
 const {Model} = require('objection')
-
 const knex = require('../setting/db')
 
 Model.knex(knex)
 
-class counterparty extends Model{
+class  input extends Model{
     static get tableName(){
-        return 'counterparty'
+        return 'input'
     }
 }
-module.exports = counterparty
+
+module.exports = input
