@@ -2,7 +2,7 @@ const Product = require("../models/product_models");
 
 
 exports.getProduct = async (req, res) => {
-  const product = await Product.query().where("*").first();
+  const product = await Product.query().select("*").first();
   return res.status(200).json({ success: true, product: product });
 };
 
