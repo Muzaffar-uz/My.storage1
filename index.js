@@ -15,6 +15,7 @@ const OutputRouter = require('./router/output_router')
 const CounterpartyRouter = require('./router/counterparty_router')
 const Group_product = require("./router/group_product_router")
 const CategoriyRouter = require("./router/categoriy_router")
+const currencyRouter = require('./router/currency_router')
 
 app.use('/user',UsreRouter)
 app.use('/product',ProductRouter)
@@ -23,6 +24,7 @@ app.use('/output',OutputRouter)
 app.use('/counterparty',CounterpartyRouter)
 app.use('/group',Group_product)
 app.use('/categoriy',CategoriyRouter)
+app.use("/currency",currencyRouter)
 
 app.listen('3000',()=>{
     console.log('server running');

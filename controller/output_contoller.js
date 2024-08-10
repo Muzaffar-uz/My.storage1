@@ -1,14 +1,22 @@
 const Output = require('../models/output_models')
 const Product = require('../models/product_models')
 const Counterparty = require('../models/counterparty_models')
+const counterparty = require('../models/counterparty_models')
+
+exports.getOutput = async (req,res)=>{
+  const output = await Output.query().select('*').first()
+    return res.status(200).json({success:true, output: output})
+}
 
  exports.postOutput = async (req,res) =>{
     await Output.query().insert({
         counterparty_id: req.body.counterparty_id,
         product_id: req.body.product_id,
         number: req.body.number,
-        value_id: req.body.value_id,
-        summ: req.body.summ,
+        currency_id: req.body.currency_id,
+        price: req.body.price,
+        //  bu yerda vaqt o'zgatirish
+        created: req.body.created
     })
     const d = new Date()
     const output = await Output.query().where('number', req.body.number).first()
@@ -26,3 +34,24 @@ updated:d,
     })
     return res.status(200).json({success:true, msg: ' maxsulot jo\'natildi'})
  }
+
+ exports.putOutput = async (req,res)=>{
+    await Output.query().where("id",req.params.id).update({
+        counterparty_id: req.body.counterparty_id,
+        product_id: req.body.product_id,
+        number: req.body.number,
+        currency_id: req.body.currency_id,
+        price: req.body.price,
+        //  bu yerda vaqt o'zgatirish
+        created: req.body.created
+    })
+    return res.status(200).json({success:true, msg: ' Jo\'natma o\'zgartirldi'})
+ }
+
+ exports.delOutput = async (req,res) => {
+await Output.query().where('id'.req.params.id).delete()
+return res.status(200).json({ success: true, msg: "delete Output" })
+ }
+
+
+ 

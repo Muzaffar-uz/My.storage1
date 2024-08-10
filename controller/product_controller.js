@@ -9,8 +9,10 @@ exports.getProduct = async (req, res) => {
 exports.postProduct = async (req, res) => {
   await Product.query().insert({
     name: req.body.name,
-    categoriy_id: req.body.categoriy_id,
-    namber_produc: req.body.namber_produc,
+    group_id: req.body.group_id,
+    currency_id:req.body.currency_id,
+    price: req.body.price,
+
   });
   return res.status(200).json({ success: true, msg: "new Product insert" });
 };
@@ -19,9 +21,9 @@ exports.putProduct = async (req, res) => {
   const d = new Date();
   await Product.query().where("id", req.params.id).update({
     name: req.body.name,
-    value_id: req.body.value_id,
     group_id: req.body.group_id,
-    summ: req.body.summ,
+    currency_id:req.body.currency_id,
+    price: req.body.price,
     update: d,
   });
   return res.status(200).json({ success: true, msg: "Product update" });
