@@ -2,7 +2,7 @@
 const Group_product = require('../models/group_product_models')
 
 exports.getGroup_product = async (req,res)=>{
-    const group_product = await Categoriy.query().where('*').first()
+    const group_product = await Categoriy.query().select('*').first()
     return res.status(200).json({success: true, group_product:group_product})
 }
 

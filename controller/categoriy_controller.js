@@ -1,7 +1,7 @@
 const Categoriy = require('../models/categoriy_models')
 
 exports.getCategoriy = async (req,res)=>{
-    const categoriy = await Categoriy.query().where('*').first()
+    const categoriy = await Categoriy.query().select('*').first()
     return res.status(200).json({success: true, categoriy:categoriy})
 }
 

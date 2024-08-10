@@ -13,12 +13,12 @@ const Counterparty = require('../models/counterparty_models')
     const d = new Date()
     const output = await Output.query().where('number', req.body.number).first()
     const product = await Product.query().where('id', req.body.product_id).first()
-// storg dan olish
+// maxsulot sonidan olish
     await Product.query().where('id', req.body.product_id).update({
         count: product.count - output.number,
         updated: d,
     })
-// counterparty dan summani olish
+// klentdan  summani olish
     const counterparty =  await Counterparty.query().where('id',req.body.counterparty_id).first()
     await Counterparty.query().where('id',req.body.counterparty_id).update({
 summ: counterparty.summ-(input.number*input.summ),
