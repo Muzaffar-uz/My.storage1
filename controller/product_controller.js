@@ -2,17 +2,20 @@ const Product = require("../models/product_models");
 
 
 exports.getProduct = async (req, res) => {
-  const product = await Product.query().select("*").first();
+  const product = await Product.query().select("*")
   return res.status(200).json({ success: true, product: product });
 };
 
 exports.postProduct = async (req, res) => {
-  await Product.query().insert({
+   await Product.query().insert({
     name: req.body.name,
     group_id: req.body.group_id,
     currency_id:req.body.currency_id,
-    price: req.body.price,
-
+    price_1: req.body.price_1,
+    price_2: req.body.price_2,
+    price_3: req.body.price_3,
+    price_4: req.body.price_4,
+  
   });
   return res.status(200).json({ success: true, msg: "new Product insert" });
 };
@@ -24,7 +27,7 @@ exports.putProduct = async (req, res) => {
     group_id: req.body.group_id,
     currency_id:req.body.currency_id,
     price: req.body.price,
-    update: d,
+    updated: d,
   });
   return res.status(200).json({ success: true, msg: "Product update" });
 };

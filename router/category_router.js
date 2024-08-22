@@ -1,10 +1,10 @@
 const router = require('express').Router()
 const Category_counroller = require('../controller/category_controller')
 
-router.get('/',Category_counroller.getCategoriy)
-router.post('/',Category_counroller.postCategoriy);
-router.put('/',Category_counroller.putCategory);
-router.delete('/',Category_counroller.delCategoriy);
+router.get('/all',Category_counroller.getCategoriy)
+router.post('/insert',Category_counroller.postCategoriy);
+router.put('/update/:id',Category_counroller.putCategory);
+router.delete('/delete/:id',Category_counroller.delCategoriy);
 
 
 
