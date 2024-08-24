@@ -5,7 +5,7 @@ Model.knex(knex)
 
 class Currency extends Model{
     static get tableName(){
-        return 'Currevcy'
+        return 'currency'
     }
 
 }

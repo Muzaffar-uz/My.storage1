@@ -5,7 +5,7 @@ Model.knex(knex)
 
 class  input extends Model{
     static get tableName(){
-        return 'input'
+        return 'input_product'
     }
 }
 

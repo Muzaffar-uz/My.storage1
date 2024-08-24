@@ -33,7 +33,7 @@ exports.putProduct = async (req, res) => {
 };
 
 exports.delProduct = async (req, res) => {
-  await Product.query().where("id", params.id).delete();
+  await Product.query().where("id", req.params.id).delete();
   return res.status(200).json({ success: true, msg: "delete Product" });
 };
 

@@ -1,9 +1,10 @@
 const Counterparty = require('../models/counterparty_models')
+const { update } = require('../setting/db')
 
 
 exports.getCounertparty = async (req,res)=>{
    try{
-    const counterparty = await Counterparty.query().select('*').first()
+    const counterparty = await Counterparty.query().select('*')
     if(!counterparty){
         return res.status(404).json({success:false, msg: "counterparty not found"})
     }
@@ -14,10 +15,9 @@ exports.getCounertparty = async (req,res)=>{
 }
 
 exports.postCounterparty = async (req,res)=>{
-    try{
         await Counterparty.query().insert({
 name: req.body.name,
-first: req.body.name,
+first_name: req.body.first_name,
 regions: req.body.regions,
 address: req.body.addreess,
 phone: req.body.phone,
@@ -29,16 +29,14 @@ email: req.body.email,
 
         })
         return res.status(200).json({success:true, msg:"yangi Klent qo'shildi"})
-    }catch(err){
-        return res.status(500).json({success:false, msg: "Server error" ,error: err.msg})
-    }
+
 }
 
 exports.putCounterparty = async (req,res)=>{
    try{ 
  await Counterparty.query().where('id',req.params.id).update({
     name: req.body.name,
-    first: req.body.name,
+    first_name: req.body.first_name,
     regions: req.body.regions,
     address: req.body.addreess,
     phone: req.body.phone,
