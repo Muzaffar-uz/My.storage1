@@ -11,11 +11,11 @@ exports.postProduct = async (req, res) => {
     name: req.body.name,
     group_id: req.body.group_id,
     currency_id:req.body.currency_id,
-    price_1: req.body.price_1,
+    price_1: req.body.priSe_1,
     price_2: req.body.price_2,
     price_3: req.body.price_3,
     price_4: req.body.price_4,
-  
+ 
   });
   return res.status(200).json({ success: true, msg: "new Product insert" });
 };

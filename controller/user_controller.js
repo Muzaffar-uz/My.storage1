@@ -65,7 +65,7 @@ exports.auth = async (req, res) => {
   if (!user) {
     return res.status(404).json({ success: false, err: "user-not-found" });
   }
-  const checkPassword = await User.query().where("password", req.body.password).first();
+  const checkPassword = await User.query().findIndex('password',req.body.password).first()
   if (!checkPassword) {
     return res.status(400).json({ success: false, err: "login-or-password-fail" });
   }

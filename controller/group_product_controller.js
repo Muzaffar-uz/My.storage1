@@ -2,14 +2,17 @@
 const Group_product = require('../models/group_product_models')
 
 exports.getGroup_product = async (req,res)=>{
-    const group_product = await Group_product.query().select('*');
+    const group_product = await Group_product.query()
+    .select('group_product.id','group_product.name','category.name','group_product.created')
+    .leftJoin('category','group_product.categoriy_id','category.id')
     return res.status(200).json({success: true, group_product:group_product})
 }
 
 exports.postGroup_product = async (req,res)=>{
+    console.log
      await Group_product.query().insert({
       name: req.body.name,
-      categoriy_id: req.body.categoriy_id,
+      categoriy_id: req.body.category_id,
        
     })
     return res.status(200).json({success:true, msg:"new Group_product insert"})

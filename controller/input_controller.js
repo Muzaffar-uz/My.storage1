@@ -4,28 +4,37 @@ const Counterparty = require('../models/counterparty_models')
 
 
 exports.getInput = async(req,res)=>{
-    const input =await Input.query().select('*').leftJoin()
+    const input =await Input.query()
+    .select('input_product.id', 
+    'input_product.number',
+    'input_product.price',
+    'product.name AS product_name',
+    'counterparty.name AS counterparty_name',
+    'input_product.price_1',
+    'input_product.price_2',
+    'input_product.price_3',
+    'input_product.price_4',
+    'input_product.created',)
+    
+            .leftJoin('product', 'input_product.product_id', 'product.id')
+            .leftJoin('counterparty', 'input_product.counterparty_id', 'counterparty.id')
+            // .leftJoin('currency','input_product.currency_id','currency.id')
     return res.status(200).json({success:true, input:input})
 }
 
  exports.postInput = async (req,res) =>{
-    const price = await Product.query()
-    .select('product.price_1', 'product.price_2', 'product.price_3', 'product.price_4', 'Input.price')
-    .join('Input', 'Product.id', 'Input.product_id')
-    .where('Product.id', req.body.product_id)
-    .andWhere('Input.counterparty_id', req.body.counterparty_id);
-    // Kiritish operatsiyasi
-    await Input.query().insert({
-        counterparty_id: req.body.counterparty_id,
-        product_id: req.body.product_id,
-        number: req.body.number,
-        currency_id: req.body.currency_id,
-        price: price[0].price_1, // Narxni olish
-    });
-
-
+    const price = [{price_1:req.body.price_1},]
+     // Kiritish operatsiyasi
+  await Input.query().insert({
+    counterparty_id: req.body.counterparty_id,
+    product_id: req.body.product_id,
+    number: req.body.number,
+    currency_id: req.body.currency_id,
+    price: req.body.price // Narxni olish1
+});
    
-//     const d = new Date()
+   
+//  const d = new Date()
 //     // product sonini sqalab qo'yish
 //     const input = await Input.query().where('number', req.body.number).first()
 //     const product = await Product.query().where('id', req.body.product_id).first()
