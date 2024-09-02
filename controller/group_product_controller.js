@@ -6,8 +6,9 @@ exports.getGroup_product = async (req,res)=>{
     .select('group_product.id',
     'group_product.name',
     'category.name AS category_name',
+    'categoriy_id',
     'group_product.created')
-    .leftJoin('category','group_product.categoriy_id','category.id')
+    .leftJoin('category','group_product.categoriy_id','category.id').where('categoriy_id',req.params.id)
     return res.status(200).json({success: true, group_product:group_product})
 }
 
@@ -18,6 +19,7 @@ exports.postGroup_product = async (req,res)=>{
       categoriy_id: req.body.category_id,
        
     })
+    
     return res.status(200).json({success:true, msg:"new Group_product insert"})
 }
 

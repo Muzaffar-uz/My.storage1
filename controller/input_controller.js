@@ -30,7 +30,7 @@ exports.getInput = async(req,res)=>{
     product_id: req.body.product_id,
     number: req.body.number,
     currency_id: req.body.currency_id,
-    price: req.body.price // Narxni olish1
+    price:[{price_1:req.body.price_1},{price_2:req.body.price_2},{price_3:req.body.price_3},{price_3:req.body.price_3}]// Narxni qoshish
 });
    
    
