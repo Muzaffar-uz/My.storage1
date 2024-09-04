@@ -3,7 +3,7 @@ const Product = require("../models/product_models");
 
 
 exports.getProduct = async (req, res) => {
-  const product = await Product.query().select("*")
+  const product = await Product.query().select("*").where('group_id',req.params.id)
   return res.status(200).json({ success: true, product: product });
 };
 
@@ -11,12 +11,18 @@ exports.postProduct = async (req, res) => {
    await Product.query().insert({
     name: req.body.name,
     group_id: req.body.group_id,
-    });
+    price_1:req.body.price_1,
+    price_2: req.body.price_2,
+    price_3: req.body.price_3,
+    currency_id: req.body.currency_id,
+    status: req.body.status
+});
     // to'g'ridan to'g'ri categoryga update bo'ladi
    const category = await group_product.query().where("id", req.body.group_id).first();
     await Product.query().where('group_id', req.body.group_id).update({
         category_id: category.categoriy_id
       })
+      console.log(category);
 
   return res.status(200).json({ success: true, msg: "new Product insert" });
 };
@@ -28,6 +34,11 @@ exports.putProduct = async (req, res) => {
     // gourp o'zgarmin duribdi
     group_id: req.body.group_id,  
     category_id: req.body.category_id,
+    price_1:req.body.price_1,
+    price_2: req.body.price_2,
+    price_3: req.body.price_3,
+    currency_id: req.body.currency_id,
+    status: req.body.status,
     updated: d,
   });
   return res.status(200).json({ success: true, msg: "Product update" });
