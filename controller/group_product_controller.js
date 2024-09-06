@@ -13,7 +13,7 @@ exports.getGroup_product = async (req,res)=>{
 }
 
 exports.postGroup_product = async (req,res)=>{
-    console.log
+   
      await Group_product.query().insert({
       name: req.body.name,
       categoriy_id: req.body.categoriy_id,
