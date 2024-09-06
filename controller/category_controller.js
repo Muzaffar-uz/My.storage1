@@ -1,11 +1,11 @@
 const Category = require('../models/category_models')
 
-exports.getCategoriy = async (req,res)=>{
-    const categoriy = await Category.query().select('*');
-    return res.status(200).json({success: true, categoriy:categoriy})
+exports.getCategory = async (req,res)=>{
+    const category = await Category.query().select('*');
+    return res.status(200).json({success: true, category:category})
 }
 
-exports.postCategoriy = async (req,res)=>{
+exports.postCategory = async (req,res)=>{
      await Category.query().insert({
       name: req.body.name,  
     })
@@ -21,7 +21,7 @@ exports.putCategory = async (req,res)=>{
     return res.status(200).json({success:true,msg:'categoriy update'})
 }
 
-exports.delCategoriy = async (req,res)=>{
+exports.delCategory = async (req,res)=>{
     await Category.query().where('id',req.params.id).delete()
     return res.status(200).json({success:true,msg:'delete categoriy'})
 }

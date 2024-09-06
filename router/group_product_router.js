@@ -1,10 +1,11 @@
 const router = require('express').Router()
 const Gourp_product_conroller = require('../controller/group_product_controller')
-
-router.get('/all/:id',Gourp_product_conroller.getGroup_product)
-router.post('/insert',Gourp_product_conroller.postGroup_product);
-router.put('/update/:id',Gourp_product_conroller.putGroup_product);
-router.delete('/delete/:id',Gourp_product_conroller.delGroup_product)
+const Product = require('../controller/product_controller');
+router.get('/all/:id',Gourp_product_conroller.getGroup)
+router.post('/insert/:id',Gourp_product_conroller.postGroup);
+router.post('/update/:id',Gourp_product_conroller.putGroup);
+router.delete('/delete/:id', Gourp_product_conroller.delGroup)
+router.get('/all1',Gourp_product_conroller.getGroup1)
 
 
 
