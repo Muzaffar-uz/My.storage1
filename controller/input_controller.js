@@ -3,22 +3,11 @@ const Product = require('../models/product_models')
 const Counterparty = require('../models/counterparty_models')
 
 
+
 exports.getInput = async(req,res)=>{
-    const input =await Input.query()
-    .select('input_product.id', 
-    'input_product.number',
-    'input_product.price',
-    'product.name AS product_name',
-    'counterparty.name AS counterparty_name',
-    'input_product.price_1',
-    'input_product.price_2',
-    'input_product.price_3',
-    'input_product.price_4',
-    'input_product.created',)
+    const input =await Input.query().select('*')
     
-            .leftJoin('product', 'input_product.product_id', 'product.id')
-            .leftJoin('counterparty', 'input_product.counterparty_id', 'counterparty.id')
-            // .leftJoin('currency','input_product.currency_id','currency.id')
+         
     return res.status(200).json({success:true, input:input})
 }
 
@@ -30,8 +19,9 @@ exports.getInput = async(req,res)=>{
     product_id: req.body.product_id,
     number: req.body.number,
     currency_id: req.body.currency_id,
-    price:[{price_1:req.body.price_1},{price_2:req.body.price_2},{price_3:req.body.price_3},{price_3:req.body.price_3}]// Narxni qoshish
-});
+    price :req.body.price,
+    created: req.body.created
+    });
    
    
 //  const d = new Date()
@@ -69,3 +59,29 @@ exports.getInput = async(req,res)=>{
     await Input.query().where('id',req.parms.id).delete()
 return res.status(200).json({success:true, msg: ' maxsulot o\'chirildi'})
 }
+
+
+
+exports.input = async (req, res) => {
+    const knex = await Input.knex(); 
+  
+    const data = await knex.raw(`
+    SELECT n.id, 
+    a.id as id_counterparty, 
+    a.name as counterparty, 
+    k.id as id_product, 
+    k.name as product, 
+    n.number as namber, 
+    n.price as price, 
+    d.id as currency_id, 
+    d.name as currency, 
+    n.created as created, 
+    a.who 
+    FROM input_product as n  
+    LEFT JOIN counterparty as a on a.id = n.counterparty_id
+    LEFT JOIN product as k on k.id = n.product_id
+    LEFT JOIN currency as d on d.id = n.currency_id;`);
+  
+    return res.json({ success: true, input: data[0] });
+  };
+  

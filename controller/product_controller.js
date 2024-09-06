@@ -22,16 +22,17 @@ exports.postProduct = async (req, res) => {
     status: req.body.status
 });
     // to'g'ridan to'g'ri categoryga update bo'ladi
-  //  const category = await group_product.query().where("id", req.body.group_id).first();
-  //   await Product.query().where('group_id', req.body.group_id).update({
-  //       category_id: category.categoriy_id
-  //     })
+   const category = await group_product.query().where("id", req.body.group_id).first();
+    await Product.query().where('group_id', req.body.group_id).update({
+        category_id: category.categoriy_id
+      })
+      console.log(category);
 
   return res.status(200).json({ success: true, msg: "new Product insert" });
 };
 
 exports.putProduct = async (req, res) => {
-  const d = new Date();
+  
   await Product.query().where("id", req.params.id).update({
     name: req.body.name,
     // gourp o'zgarmin duribdi
@@ -42,7 +43,6 @@ exports.putProduct = async (req, res) => {
     price_3: req.body.price_3,
     currency_id: req.body.currency_id,
     status: req.body.status,
-    updated: d,
   });
   return res.status(200).json({ success: true, msg: "Product update" });
 };

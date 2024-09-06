@@ -1,5 +1,5 @@
 const Counterparty = require('../models/counterparty_models')
-const { update } = require('../setting/db')
+
 
 
 exports.getCounertparty = async (req,res)=>{
@@ -26,6 +26,8 @@ stir: req.body.stir,
 mfo: req.body.mfo,
 note: req.body.note,
 email: req.body.email,
+kim: req.body.kim,
+status: req.body.status,
 
         })
         return res.status(200).json({success:true, msg:"yangi Klent qo'shildi"})
