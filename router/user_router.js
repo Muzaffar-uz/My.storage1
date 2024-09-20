@@ -3,12 +3,12 @@ const Usercontroller = require('../controller/user_controller')
 const {protect,role} = require('../middleware/auth-middleware')
 
 ;
-router.get('/role',protect,role("Admin"),Usercontroller.getUser)
-router.post('/role',Usercontroller.postUser);
-router.put('/role/:id',Usercontroller.updetUser)
-router.delete('/role/:id',Usercontroller.delteUser)
+router.get('/all',Usercontroller.getUser)
+router.post('/insert',Usercontroller.postUser);
+router.put('/updated/:id',Usercontroller.updetUser)
+router.delete('/delete/:id',Usercontroller.delteUser)
 router.post('/auth',Usercontroller.auth)
-router.post('/res',Usercontroller.repassword)
+router.post('/res',protect,role("Admin"),Usercontroller.repassword)
 
 
 module.exports = router;

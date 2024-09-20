@@ -20,18 +20,20 @@ exports.postUser = async (req, res) => {
   if (user) {
     return res.status(404).json({ success: false, err: "foydalanuvchi mavjud" });
   }
+  const salt = await bcrypt.genSaltSync(12)
+  const password = await bcrypt.hashSync(req.body.password,salt)
   await User.query().insert({
     name: req.body.name,
     role: req.body.role,
     email: req.body.email,
-    password: req.body.password,
+    password: password,
     phone: req.body.phone,
     login: req.body.login,
   });
-  return res
-    .status(200)
-    .json({ success: true, msg: "foydalanufchi yaratildi" });
+  return res.status(200).json({ success: true, msg: "foydalanufchi yaratildi" });
 };
+
+
 
 // fodalanuvchini yangilash paramsda
 exports.updetUser = async (req, res) => {
@@ -44,7 +46,7 @@ exports.updetUser = async (req, res) => {
     password: req.body.password,
     phone: req.body.phone,
     login: req.body.login,
-    updated: d,
+    created: d,
   });
   return res
     .status(200)
@@ -65,7 +67,10 @@ exports.auth = async (req, res) => {
   if (!user) {
     return res.status(404).json({ success: false, err: "user-not-found" });
   }
-  const checkPassword = await User.query().findIndex('password',req.body.password).first()
+  const checkPassword = await bcrypt.compareSync(
+    req.body.password,
+    user.password
+  ) 
   if (!checkPassword) {
     return res.status(400).json({ success: false, err: "login-or-password-fail" });
   }
@@ -74,6 +79,7 @@ exports.auth = async (req, res) => {
   const token = await jwt.sign(payload, secret, { expiresIn: "1d" });
   return res.status(200).json({ success: true, token: token });
 };
+
 
 exports.repassword = async (req, res) => {
   if (req.body.step == 1) {
@@ -188,7 +194,3 @@ transporter.sendMail(mailOptions, function(error, val){
     return res.status(200).json({success:true, msg:"code update"})
 }
   }
-
-  
-  
-  

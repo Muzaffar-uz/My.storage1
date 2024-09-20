@@ -62,7 +62,7 @@ return res.status(200).json({success:true, msg: ' maxsulot o\'chirildi'})
 
 
 
-exports.input = async (req, res) => {
+exports.getInput2 = async (req, res) => {
     const knex = await Input.knex(); 
   
     const data = await knex.raw(`
@@ -73,14 +73,16 @@ exports.input = async (req, res) => {
     k.name as product, 
     n.number as namber, 
     n.price as price, 
+    k.price_1,
+    k.price_2,
+    k.price_3,
     d.id as currency_id, 
     d.name as currency, 
-    n.created as created, 
-    a.who 
+    n.created as created
     FROM input_product as n  
     LEFT JOIN counterparty as a on a.id = n.counterparty_id
     LEFT JOIN product as k on k.id = n.product_id
-    LEFT JOIN currency as d on d.id = n.currency_id;`);
+    LEFT JOIN currency as d on d.id = n.currency_id`);
   
     return res.json({ success: true, input: data[0] });
   };

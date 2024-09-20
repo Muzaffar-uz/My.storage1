@@ -19,6 +19,7 @@ const CounterpartyRouter = require('./router/counterparty_router')
 const Group_product = require("./router/group_product_router")
 const CategoryRouter = require("./router/category_router")
 const currencyRouter = require('./router/currency_router')
+const Input_proRouter = require('./router/input_pro_router')
 
 app.use('/user',UsreRouter)
 app.use('/product',ProductRouter)
@@ -28,7 +29,7 @@ app.use('/counterparty',CounterpartyRouter)
 app.use('/group',Group_product)
 app.use('/category',CategoryRouter)
 app.use("/currency",currencyRouter)
-
+app.use('/input_pro',Input_proRouter)
 app.listen('3000',()=>{
     console.log('server running');
 })
