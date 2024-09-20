@@ -53,7 +53,7 @@ exports.putProduct = async (req, res) => {
   await Product.query().where("id", req.params.id).update({
     name: req.body.name,
     // gourp o'zgarmin duribdi
-    group_id: req.body.group_id,  
+    group_id: req.params.id,  
     category_id: req.body.category_id,
     price_1:req.body.price_1,
     price_2: req.body.price_2,
