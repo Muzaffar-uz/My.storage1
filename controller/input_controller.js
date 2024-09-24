@@ -4,12 +4,17 @@ const Counterparty = require('../models/counterparty_models')
 
 
 
-exports.getInput = async(req,res)=>{
-    const input =await Input.query().select('*')
+
+exports.getInput = async (req, res) => {
+  
+    const input = await Input.query().select("*").where('provider_id', req.params.id).leftJoin('')
+  
     
-         
-    return res.status(200).json({success:true, input:input})
-}
+    return res.status(200).json({ success: true, input: input });
+  };
+
+
+
 
  exports.postInput = async (req,res) =>{
     const price = [{price_1:req.body.price_1},]

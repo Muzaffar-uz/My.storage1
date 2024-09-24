@@ -1,24 +1,12 @@
 const group = require("../models/group_product_models");
 const Product = require("../models/product_models");
-const { select } = require("../setting/db");
+
 
 
 exports.getProduct = async (req, res) => {
   
-  const product = await Product.query().select("*")
-    // 'product.id',
-    // 'product.name',
-    // 'product.price_1',
-    // 'product.price_2',
-    // 'product.price_3',
-    // 'product.group_id',
-    // "product.category_id",
-    // 'product.status',
-    // 'product.currency_id',
-    // 'currency.name AS currency'
-  // )
-    .where('group_id', req.params.id)
-    // .leftJoin('currency', 'currency.id', 'product.currency_id')
+  const product = await Product.query().select("*").where('group_id', req.params.id)
+
   
   return res.status(200).json({ success: true, product: product });
 };
