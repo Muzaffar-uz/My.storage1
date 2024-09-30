@@ -1,94 +1,164 @@
  const Input = require('../models/input_models')
-const Product = require('../models/product_models')
-const Counterparty = require('../models/counterparty_models')
+const Input_pro = require('../models/input_pro_models')
 
 
 
 
 exports.getInput = async (req, res) => {
-  
-    const input = await Input.query().select("*").where('provider_id', req.params.id).leftJoin('')
-  
-    
-    return res.status(200).json({ success: true, input: input });
-  };
+    try {
+        const input = await Input.query()
+            .select(
+            "input_product.id", 
+            "input_product.product_id",
+            "product.name as product",
+            "input_product.provider_id",
+            "input_product.number",
+            "input_product.price",
+            "input_product.currency_id", 
+            "currency.name as currency",
+            "input_product.created")
+            .where('provider_id', req.params.id)
+            .leftJoin('currency', 'input_product.currency_id', 'currency.id')
+            .leftJoin('product','input_product.product_id','product.id');
+
+        return res.status(200).json({ success: true, input });
+    } catch (error) {
+        return res.status(500).json({ success: false, message:error });
+    }
+};
 
 
 
 
- exports.postInput = async (req,res) =>{
-    const price = [{price_1:req.body.price_1},]
-     // Kiritish operatsiyasi
-  await Input.query().insert({
-    counterparty_id: req.body.counterparty_id,
-    product_id: req.body.product_id,
-    number: req.body.number,
-    currency_id: req.body.currency_id,
-    price :req.body.price,
-    created: req.body.created
+exports.postInput = async (req, res) => {
+  try {
+    // Kiritish operatsiyasi
+    await Input.query().insert({
+      provider_id: req.params.id,
+      product_id: req.body.product_id,
+      number: req.body.number,
+      currency_id: req.body.currency_id,
+      price: req.body.price,
+      created: req.body.created
     });
-   
-   
-//  const d = new Date()
-//     // product sonini sqalab qo'yish
-//     const input = await Input.query().where('number', req.body.number).first()
-//     const product = await Product.query().where('id', req.body.product_id).first()
 
-//     await Product.query().where('id', req.body.product_id).update({
-//         count: product.count + input.number,
-        
-//     })
-//   //   savdo pulini klentga saqlab qo'yish
-//     const counterparty =  await Counterparty.query().where('id',req.body.counterparty_id).first()
-//     await Counterparty.query().where('id',req.body.counterparty_id).update({
-// summ: counterparty.summ+(input.number*input.summ),
-// updated:d,
-//     })
-    return res.status(200).json({success:true, msg: 'Ynagi maxsulot qo\'shildi'})
- }
+    // Bu yerda provider_id orqali qidiryapmiz
+    const input_pro = await Input_pro.query().where('id', req.params.id).first();
+    
+    // Agar input_pro topilmasa
+    if (!input_pro) {
+      return res.status(404).json({ success: false, msg: 'Input topilmadi' });
+    }
 
- exports.putInput = async (req,res) =>{
-        await Input.query().where('id',req.parms.id).update({
-            counterparty_id: req.body.counterparty_id,
-            product_id: req.body.product_id,
-            number: req.body.number,
-            currency_id: req.body.currency_id,
-            price: req.body.price,
-            //  bu yerda vaqtni o'zgartirsh
-        created: req.body.created,
-    })
-    return res.status(200).json({success:true, msg: ' maxsulot o\'zgartirildi'})
- }
+    if (req.body.currency_id ==1) {
+      // 1=$$
+      await Input_pro.query().where('id', req.params.id).update({
+        count: Number(input_pro.count) + Number(req.body.number), 
+        summ$:(Number(input_pro['summ$']) ) + Number(req.body.price) 
+      });
+      return res.status(200).json({ success: true, msg: 'Yangi mahsulot qo\'shildi' });
+    }
 
- exports.delInput = async (req,res) =>{
-    await Input.query().where('id',req.parms.id).delete()
-return res.status(200).json({success:true, msg: ' maxsulot o\'chirildi'})
-}
+    if (req.body.currency_id ==2) {
+      // 2=so'm
+      await Input_pro.query().where('id', req.params.id).update({
+        count: Number(input_pro.count) + Number(req.body.number), 
+        summ: Number(input_pro.summ ) + Number(req.body.price) 
+      });
+      return res.status(200).json({ success: true, msg: 'Yangi mahsulot qo\'shildi' });
+    }
+    return res.status(400).json({ success: false, msg: 'Valyuta identifikatori noto\'g\'ri' }); // Agar currency_id 1 yoki 2 bo'lmasa
+  } catch (e) {
+    // Xato xabarini yaxshiroq ko'rsatamiz
+    return res.status(500).json({ success: false, msg: e.message });
+  }
+};
 
-
-
-exports.getInput2 = async (req, res) => {
-    const knex = await Input.knex(); 
   
-    const data = await knex.raw(`
-    SELECT n.id, 
-    a.id as id_counterparty, 
-    a.name as counterparty, 
-    k.id as id_product, 
-    k.name as product, 
-    n.number as namber, 
-    n.price as price, 
-    k.price_1,
-    k.price_2,
-    k.price_3,
-    d.id as currency_id, 
-    d.name as currency, 
-    n.created as created
-    FROM input_product as n  
-    LEFT JOIN counterparty as a on a.id = n.counterparty_id
-    LEFT JOIN product as k on k.id = n.product_id
-    LEFT JOIN currency as d on d.id = n.currency_id`);
-  
-    return res.json({ success: true, input: data[0] });
-  };
+
+// exports.putInput = async (req, res) => {
+//   try {
+//     // O'chirishdan oldin Inputdan o'chirilayotgan yozuvni topamiz
+//     const inputToDelete = await Input.query().where('id', req.params.id).first();
+
+//     // Agar Inputda ma'lumot topilmasa
+//     if (!inputToDelete) {
+//       return res.status(404).json({ success: false, msg: 'Input topilmadi' });
+//     }
+
+//     // `Input_pro` jadvalidagi `counterparty_id` orqali bog'langan yozuvni topamiz
+//     const input_pro = await Input_pro.query()
+//       .where('id', inputToDelete.provider_id)
+//       .first();
+
+//     // Agar Input_pro jadvalidagi ma'lumot topilmasa
+//     if (!input_pro) {
+//       return res.status(404).json({ success: false, msg: 'Input_pro topilmadi' });
+//     }
+
+//     // `Input_pro` dagi countdan `Input` dagi numberni ayirib yangilaymiz
+//     await Input_pro.query().where('id', inputToDelete.provider_id).update({
+//       count: Number(input_pro.count) - Number(inputToDelete.number)
+//     });
+
+//     // Inputdan ma'lumotni o'chiramiz
+//     await Input.query().where('id', req.params.id).update({
+//       number:req.body.number,
+//       created:req.body.created
+//     });
+//     await Input_pro.query().where('id', inputToDelete.provider_id).update({
+//       count: Number(input_pro.count) + Number(req.body.number)
+//     });
+
+//     return res.status(200).json({ success: true, msg: 'Mahsulot yangilandi va count yangilandi' });
+//   } catch (e) {
+//     return res.status(500).json({ success: false, msg: e.message });
+//   }
+// };
+
+
+ exports.delInput = async (req, res) => {
+  try {
+    // O'chirishdan oldin Inputdan o'chirilayotgan yozuvni topamiz
+    const inputToDelete = await Input.query().where('id', req.params.id).first();
+
+    // Agar Inputda ma'lumot topilmasa
+    if (!inputToDelete) {
+      return res.status(404).json({ success: false, msg: 'Input topilmadi' });
+    }
+
+    // `Input_pro` jadvalidagi `counterparty_id` orqali bog'langan yozuvni topamiz
+    const input_pro = await Input_pro.query()
+      .where('id', inputToDelete.provider_id)
+      .first();
+
+    // Agar Input_pro jadvalidagi ma'lumot topilmasa
+    if (!input_pro) {
+      return res.status(404).json({ success: false, msg: 'Input_pro topilmadi' });
+    }
+if(inputToDelete.currency_id == 1){
+    // `Input_pro` dagi countdan `Input` dagi numberni ayirib yangilaymiz
+    await Input_pro.query().where('id', inputToDelete.provider_id).update({
+      count: Number(input_pro.count) - Number(inputToDelete.number),
+      summ$: Number(input_pro['summ$']) - Number(inputToDelete.price)
+    });
+  }
+  if(inputToDelete.currency_id == 2){
+    // `Input_pro` dagi countdan `Input` dagi numberni ayirib yangilaymiz
+    await Input_pro.query().where('id', inputToDelete.provider_id).update({
+      count: Number(input_pro.count) - Number(inputToDelete.number),
+      summ: Number(input_pro.summ) - Number(inputToDelete.price)
+    });
+  }
+    // Inputdan ma'lumotni o'chiramiz
+    await Input.query().where('id', req.params.id).delete();
+
+    return res.status(200).json({ success: true, msg: 'Mahsulot o\'chirildi va count yangilandi' });
+  } catch (e) {
+    return res.status(500).json({ success: false, msg: e.message });
+  }
+};
+
+
+
   
