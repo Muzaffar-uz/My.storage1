@@ -1,5 +1,6 @@
  const Input = require('../models/input_models')
-const Input_pro = require('../models/input_pro_models')
+const Product = require('../models/product_models')
+const XLSX = require('xlsx');
 
 
 
@@ -27,6 +28,25 @@ exports.getInput = async (req, res) => {
     }
 };
 
+exports.getProduct = async (req, res) => {
+  const { name } = req.query;
+
+  const knex = await Product.knex();
+
+  // Agar name parametri berilmagan bo'lsa, barcha counterpartylarni qaytar
+  if (!name) {
+    const data = await knex.raw(`
+      SELECT id, name FROM product
+    `);
+    return res.json({ success: true, input: data[0] });
+  }
+
+  const data = await knex.raw(`
+    SELECT id, name FROM product WHERE name LIKE ?`, [`${name}%`]);
+
+  return res.json({ success: true, input: data[0] });
+};
+
 
 
 
@@ -42,32 +62,6 @@ exports.postInput = async (req, res) => {
       created: req.body.created
     });
 
-    // Bu yerda provider_id orqali qidiryapmiz
-    const input_pro = await Input_pro.query().where('id', req.params.id).first();
-    
-    // Agar input_pro topilmasa
-    if (!input_pro) {
-      return res.status(404).json({ success: false, msg: 'Input topilmadi' });
-    }
-
-    if (req.body.currency_id ==1) {
-      // 1=$$
-      await Input_pro.query().where('id', req.params.id).update({
-        count: Number(input_pro.count) + Number(req.body.number), 
-        summ$:(Number(input_pro['summ$']) ) + Number(req.body.price) 
-      });
-      return res.status(200).json({ success: true, msg: 'Yangi mahsulot qo\'shildi' });
-    }
-
-    if (req.body.currency_id ==2) {
-      // 2=so'm
-      await Input_pro.query().where('id', req.params.id).update({
-        count: Number(input_pro.count) + Number(req.body.number), 
-        summ: Number(input_pro.summ ) + Number(req.body.price) 
-      });
-      return res.status(200).json({ success: true, msg: 'Yangi mahsulot qo\'shildi' });
-    }
-    return res.status(400).json({ success: false, msg: 'Valyuta identifikatori noto\'g\'ri' }); // Agar currency_id 1 yoki 2 bo'lmasa
   } catch (e) {
     // Xato xabarini yaxshiroq ko'rsatamiz
     return res.status(500).json({ success: false, msg: e.message });
@@ -76,89 +70,78 @@ exports.postInput = async (req, res) => {
 
   
 
-// exports.putInput = async (req, res) => {
-//   try {
-//     // O'chirishdan oldin Inputdan o'chirilayotgan yozuvni topamiz
-//     const inputToDelete = await Input.query().where('id', req.params.id).first();
-
-//     // Agar Inputda ma'lumot topilmasa
-//     if (!inputToDelete) {
-//       return res.status(404).json({ success: false, msg: 'Input topilmadi' });
-//     }
-
-//     // `Input_pro` jadvalidagi `counterparty_id` orqali bog'langan yozuvni topamiz
-//     const input_pro = await Input_pro.query()
-//       .where('id', inputToDelete.provider_id)
-//       .first();
-
-//     // Agar Input_pro jadvalidagi ma'lumot topilmasa
-//     if (!input_pro) {
-//       return res.status(404).json({ success: false, msg: 'Input_pro topilmadi' });
-//     }
-
-//     // `Input_pro` dagi countdan `Input` dagi numberni ayirib yangilaymiz
-//     await Input_pro.query().where('id', inputToDelete.provider_id).update({
-//       count: Number(input_pro.count) - Number(inputToDelete.number)
-//     });
-
-//     // Inputdan ma'lumotni o'chiramiz
-//     await Input.query().where('id', req.params.id).update({
-//       number:req.body.number,
-//       created:req.body.created
-//     });
-//     await Input_pro.query().where('id', inputToDelete.provider_id).update({
-//       count: Number(input_pro.count) + Number(req.body.number)
-//     });
-
-//     return res.status(200).json({ success: true, msg: 'Mahsulot yangilandi va count yangilandi' });
-//   } catch (e) {
-//     return res.status(500).json({ success: false, msg: e.message });
-//   }
-// };
-
+exports.putInput = async (req, res) => {
+  try{await Input.query().findOne('id', req.params.id).update(req.body)
+    return res.status(200).json({success:true})
+  }catch(e){
+        res.status(500).json({ error: e});
+      }
+}
 
  exports.delInput = async (req, res) => {
+  try{ await Input.query().where('id',req.params.id).delete()
+  return res.status(200).json({success:true})}catch(e){
+      res.status(500).json({ error: e});
+  }
+}
+
+exports.exportInputToExcel = async (req, res) => {
+
+  const providerId = req.params.id;
+  const knex = await Input.knex();
   try {
-    // O'chirishdan oldin Inputdan o'chirilayotgan yozuvni topamiz
-    const inputToDelete = await Input.query().where('id', req.params.id).first();
+    const result = await knex.raw(`
+    SELECT d.name, a.name AS product, n.number, 
+           CASE 
+             WHEN p.name = 'mlliy valyuta' THEN n.price 
+             ELSE NULL 
+           END AS price_milliy,
+           CASE 
+             WHEN p.name != 'mlliy valyuta' THEN n.price 
+             ELSE NULL 
+           END AS price_$$,
+           q.created
+    FROM input_product AS n
+    LEFT JOIN product AS a ON a.id = n.product_id
+    LEFT JOIN currency AS p ON p.id = n.currency_id 
+    LEFT JOIN input_provider AS q ON q.id = n.provider_id
+    LEFT JOIN counterparty AS d ON d.id = q.counterparty_id
+    WHERE n.provider_id = ?
+    `, [providerId]);
 
-    // Agar Inputda ma'lumot topilmasa
-    if (!inputToDelete) {
-      return res.status(404).json({ success: false, msg: 'Input topilmadi' });
+    const products = result[0];
+    if (products.length === 0) {
+        return res.status(404).json({ success: false, message: "Ma'lumot topilmadi" });
     }
 
-    // `Input_pro` jadvalidagi `counterparty_id` orqali bog'langan yozuvni topamiz
-    const input_pro = await Input_pro.query()
-      .where('id', inputToDelete.provider_id)
-      .first();
+    // Excel faylini yaratish
+    const worksheet = XLSX.utils.json_to_sheet(products);
 
-    // Agar Input_pro jadvalidagi ma'lumot topilmasa
-    if (!input_pro) {
-      return res.status(404).json({ success: false, msg: 'Input_pro topilmadi' });
-    }
-if(inputToDelete.currency_id == 1){
-    // `Input_pro` dagi countdan `Input` dagi numberni ayirib yangilaymiz
-    await Input_pro.query().where('id', inputToDelete.provider_id).update({
-      count: Number(input_pro.count) - Number(inputToDelete.number),
-      summ$: Number(input_pro['summ$']) - Number(inputToDelete.price)
-    });
-  }
-  if(inputToDelete.currency_id == 2){
-    // `Input_pro` dagi countdan `Input` dagi numberni ayirib yangilaymiz
-    await Input_pro.query().where('id', inputToDelete.provider_id).update({
-      count: Number(input_pro.count) - Number(inputToDelete.number),
-      summ: Number(input_pro.summ) - Number(inputToDelete.price)
-    });
-  }
-    // Inputdan ma'lumotni o'chiramiz
-    await Input.query().where('id', req.params.id).delete();
+    // Jami hisoblash
+    const totalNumber = products.reduce((sum, product) => sum + (product.number || 0), 0);
+    const totalPrice = products.reduce((sum, product) => sum + (product.price_$$ || 0), 0);
+    const totalPriceMilliy = products.reduce((sum, product) => sum + (product.price_milliy || 0), 0);
 
-    return res.status(200).json({ success: true, msg: 'Mahsulot o\'chirildi va count yangilandi' });
-  } catch (e) {
-    return res.status(500).json({ success: false, msg: e.message });
-  }
-};
+    // Jami qatorini qo'shish
+    XLSX.utils.sheet_add_aoa(worksheet, [
+      ["", "", totalNumber, totalPrice, totalPriceMilliy]
+    ], { origin: -1 });
 
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Mahsulotlar");
+
+    // Faylni bufferga yozish
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+    // Faylni yuborish
+    res.setHeader('Content-Disposition', `attachment; filename=mahsulotlar.xlsx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ success: false, message: "Xatolik yuz berdi" });
+  }
+}
 
 
   

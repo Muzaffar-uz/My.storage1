@@ -1,20 +1,12 @@
 const Counterparty = require('../models/counterparty_models');
+
+
 exports.getCounterparty = async (req, res) => {
     const counterparty = await Counterparty.query().select('*');
     return res.status(200).json({ success: true, counterparty: counterparty });
 };
 
-// exports.getProvider = async (req, res) => {
-//     try {
-//         const knex = await Counterparty.knex();
 
-//         const data = await knex.raw(`
-//      SELECT * FROM counterparty WHERE who = 1`);
-//         return res.status(200).json({ success: true, counterparty: data[0] });
-//     } catch (e) {
-//         return res.status(404).json({ success: false, err: e });
-//     }
-// };
 
 exports.postCounterparty = async (req, res) => {
     try {
@@ -107,6 +99,6 @@ exports.delCounterparty = async (req, res) => {
     } catch (err) {
         return res
             .status(500)
-            .json({ success: false, msg: 'Server error', error: err.msg });
+            .json({ success: false, msg: 'Server error', error: err});
     }
 };

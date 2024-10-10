@@ -1,10 +1,9 @@
-const Output = require('../models/output_models')
-const Product = require('../models/product_models')
-const Counterparty = require('../models/counterparty_models')
-const counterparty = require('../models/counterparty_models')
+
+const Order_product = require('../models/order_product_models')
+
 
 exports.getOutput = async (req,res)=>{
-  const output = await Output.query().select('*').first()
+  const output = await Order_product.query().select('*').first()
     return res.status(200).json({success:true, output: output})
 }
 
