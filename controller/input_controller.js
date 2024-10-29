@@ -4,45 +4,49 @@ const XLSX = require('xlsx');
 
 
 
-
 exports.getInput = async (req, res) => {
-    try {
-        const input = await Input.query()
-            .select(
-            "input_product.id", 
-            "input_product.product_id",
-            "product.name as product",
-            "input_product.provider_id",
-            "input_product.number",
-            "input_product.price",
-            "input_product.currency_id", 
-            "currency.name as currency",
-            "input_product.created")
-            .where('provider_id', req.params.id)
-            .leftJoin('currency', 'input_product.currency_id', 'currency.id')
-            .leftJoin('product','input_product.product_id','product.id');
+  try {
+    const input = await Input.query()
+      .select(
+        "input_product.id",
+        "input_product.product_id",
+        "product.name as product",
+        "input_product.provider_id",
+        "input_product.number",
+        "input_product.price",
+        "input_product.currency_id",
+        "currency.name as currency",
+        "input_product.created"
+      )
+      .where('provider_id', req.params.id)
+      .whereNot('input_product.status', 4) // Status 4 bo'lgan qiymatlarni ko‘rsatmaydi
+      .leftJoin('currency', 'input_product.currency_id', 'currency.id')
+      .leftJoin('product', 'input_product.product_id', 'product.id');
 
-        return res.status(200).json({ success: true, input });
-    } catch (error) {
-        return res.status(500).json({ success: false, message:error });
-    }
+    return res.status(200).json({ success: true, input });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error });
+  }
 };
+
 
 exports.getProduct = async (req, res) => {
   const { name } = req.query;
 
   const knex = await Product.knex();
 
-  // Agar name parametri berilmagan bo'lsa, barcha counterpartylarni qaytar
+  // Agar name parametri berilmagan bo'lsa, status 0 bo'lmagan barcha mahsulotlarni qaytar
   if (!name) {
     const data = await knex.raw(`
-      SELECT id, name FROM product
+      SELECT id, name FROM product WHERE status != 0
     `);
     return res.json({ success: true, input: data[0] });
   }
 
+  // name parametriga ko'ra qidirish, status 0 bo'lmagan mahsulotlar
   const data = await knex.raw(`
-    SELECT id, name FROM product WHERE name LIKE ?`, [`${name}%`]);
+    SELECT id, name FROM product WHERE name LIKE ? AND status != 0
+  `, [`${name}%`]);
 
   return res.json({ success: true, input: data[0] });
 };
@@ -52,23 +56,177 @@ exports.getProduct = async (req, res) => {
 
 exports.postInput = async (req, res) => {
   try {
-    // Kiritish operatsiyasi
-    await Input.query().insert({
-      provider_id: req.params.id,
-      product_id: req.body.product_id,
-      number: req.body.number,
-      currency_id: req.body.currency_id,
-      price: req.body.price,
-      created: req.body.created
-    });
+    const status = parseInt(req.body.status);
+    const provider_id = req.params.id;
 
+    if (status === 1) {
+      // kirgizsh tavarni
+      const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
+      
+      const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
+      
+      // 3. Yangi totalni hisoblash
+      const newTotal = parseInt(lastAddedNumber) + parseInt(req.body.number);
+      
+      await Input.query().insert({
+          provider_id: provider_id,
+          status: status,
+          product_id: req.body.product_id,
+          number: Number(req.body.number),
+          currency_id: req.body.currency_id,
+          price: req.body.price,
+          total: newTotal,
+          created: req.body.created, });
+
+
+              // Retrieve and update product count
+      const product = await Product.query().where('id', req.body.product_id).first();
+      if (product) {
+        const currentCount = parseInt(product.count) || 0; // Ensure count is an integer
+        await Product.query().where('id', req.body.product_id).update({
+          count: currentCount + parseInt(req.body.number),
+        });
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found',
+        });
+      }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Data inserted and total updated successfully',
+          total: newTotal,
+        });
+      }
+      
+      if(status === 2){
+        // sotish chiqishi
+        const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
+      
+      const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
+      
+      // 3. Yangi totalni hisoblash
+      const newTotal = parseInt(lastAddedNumber) - parseInt(req.body.number);
+    
+      await Input.query().insert({
+          provider_id: provider_id,
+          status: status,
+          product_id: req.body.product_id,
+          number: Number(req.body.number),
+          currency_id: req.body.currency_id,
+          price: req.body.price,
+          total: newTotal,
+          created: req.body.created, });
+
+
+              // Retrieve and update product count
+      const product = await Product.query().where('id', req.body.product_id).first();
+      if (product) {
+        const currentCount = parseInt(product.count) || 0; // Ensure count is an integer
+        await Product.query().where('id', req.body.product_id).update({
+          count: currentCount - parseInt(req.body.number),
+        });
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found',
+        });
+      }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Data inserted and total updated successfully',
+          total: newTotal,
+        });
+      }
+      if(status === 3){
+        // qaytarib olish
+        const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
+      
+      const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
+      
+      // 3. Yangi totalni hisoblash
+      const newTotal = parseInt(lastAddedNumber) + parseInt(req.body.number);
+    
+      await Input.query().insert({
+          provider_id: provider_id,
+          status: status,
+          product_id: req.body.product_id,
+          number: Number(req.body.number),
+          currency_id: req.body.currency_id,
+          price: req.body.price,
+          total: newTotal,
+          created: req.body.created, });
+
+
+              // Retrieve and update product count
+      const product = await Product.query().where('id', req.body.product_id).first();
+      if (product) {
+        const currentCount = parseInt(product.count) || 0; // Ensure count is an integer
+        await Product.query().where('id', req.body.product_id).update({
+          count: currentCount + parseInt(req.body.number),
+        });
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found',
+        });
+      }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Data inserted and total updated successfully',
+          total: newTotal,
+        });
+      }
+      if(status === 4){
+        // o'chrish
+        const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
+      
+        const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
+        
+        // 3. Yangi totalni hisoblash
+        const newTotal = parseInt(lastAddedNumber) - parseInt(req.body.number);
+      
+        await Input.query().insert({
+            provider_id: provider_id,
+            status: status,
+            product_id: req.body.product_id,
+            number: Number(req.body.number),
+            currency_id: req.body.currency_id,
+            price: req.body.price,
+            total: newTotal,
+            created: req.body.created, });
+  
+  
+                // Retrieve and update product count
+        const product = await Product.query().where('id', req.body.product_id).first();
+        if (product) {
+          const currentCount = parseInt(product.count) || 0; // Ensure count is an integer
+          await Product.query().where('id', req.body.product_id).update({
+            count: currentCount - parseInt(req.body.number),
+          });
+        } else {
+          return res.status(404).json({
+            success: false,
+            message: 'Product not found',
+          });
+        }
+  
+          return res.status(200).json({
+            success: true,
+            message: 'Data inserted and total updated successfully',
+            total: newTotal,
+          });
+        }
   } catch (e) {
-    // Xato xabarini yaxshiroq ko'rsatamiz
     return res.status(500).json({ success: false, msg: e.message });
   }
-};
+}
 
-  
+
+
 
 exports.putInput = async (req, res) => {
   try{await Input.query().findOne('id', req.params.id).update(req.body)

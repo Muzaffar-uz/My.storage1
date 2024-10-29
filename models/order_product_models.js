@@ -1,7 +1,8 @@
-const kenx = require('../setting/db')
-const {Model} = require('objection')
 
-Model.kenx(kenx)
+const {Model} = require('objection')
+const knex = require('../setting/db')
+
+Model.knex(knex)
 
 class Order_product extends Model{
     static get tableName(){
