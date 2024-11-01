@@ -179,8 +179,8 @@ exports.delInput_pro = async (req, res) => {
         return res.status(500).json({ success: false, error: e.message });
     }
 };
-//  bu status = 1 uchun
-exports.getInput_proTime = async (req, res) => {
+//  bu status = 1 prixod
+exports.getInput_proTime1 = async (req, res) => {
     const { startDate, endDate } = req.body;
     const today = new Date().toISOString().split('T')[0];
     const start = startDate && startDate.trim() ? startDate : today;
@@ -221,11 +221,104 @@ exports.getInput_proTime = async (req, res) => {
         return res.status(500).json({ success: false, error: error.message });
     }
 };
+//  bu status 2  rasxod
+exports.getInput_proTime2 = async (req, res) => {
+  const { startDate, endDate } = req.body;
+  const today = new Date().toISOString().split('T')[0];
+  const start = startDate && startDate.trim() ? startDate : today;
+  const end = endDate && endDate.trim() ? endDate : today;
 
+  const knex = await Input_pro.knex();
+  try {
+      const data = await knex.raw(
+          `
+          SELECT 
+          n.id, 
+          n.counterparty_id, 
+          b.name,
+          
+          -- Statuslar bo'yicha mahsulotlar soni va jami soni
+      
+          COUNT(CASE WHEN a.status = 2 THEN a.product_id ELSE NULL END) AS status_2_product_soni,
+      
+      
+          SUM(CASE WHEN a.status = 2 THEN a.number ELSE 0 END) AS status_2_jami_soni,
+      
+          -- Statuslar bo'yicha narxlar (dollar va so'm)
+      
+          
+          SUM(CASE WHEN a.status = 2 AND a.currency_id = 1 THEN a.price ELSE 0 END) AS status_2_narx_dollar,
+          SUM(CASE WHEN a.status = 2 AND a.currency_id = 2 THEN a.price ELSE 0 END) AS status_2_narx_sum,
+      DATE_FORMAT(n.created, '%d/%m/%Y %H:%i') AS yaratilgan_sana
+    FROM 
+      input_provider AS n 
+    LEFT JOIN      
+      input_product AS a ON a.provider_id = n.id 
+    LEFT JOIN 
+      counterparty AS b ON b.id = n.counterparty_id 
+    WHERE 
+      n.created BETWEEN ? AND ? AND a.status = 1
+    GROUP BY 
+      n.id, b.name;
+  `,
+          [`${start} 00:00:00`, `${end} 23:59:59`]
+      );
+      return res.json({ success: true, input: data[0] });
+  } catch (error) {
+      return res.status(500).json({ success: false, error: error.message });
+  }
+};
+// bu status 3 vazvrat
+exports.getInput_proTime3 = async (req, res) => {
+  const { startDate, endDate } = req.body;
+  const today = new Date().toISOString().split('T')[0];
+  const start = startDate && startDate.trim() ? startDate : today;
+  const end = endDate && endDate.trim() ? endDate : today;
 
+  const knex = await Input_pro.knex();
+  try {
+      const data = await knex.raw(
+          `SELECT 
+          n.id, 
+          n.counterparty_id, 
+          b.name,
+          
+          -- Statuslar bo'yicha mahsulotlar soni va jami soni
+         
+          COUNT(CASE WHEN a.status = 3 THEN a.product_id ELSE NULL END) AS status_3_product_soni,
+         
+          
+          
+          SUM(CASE WHEN a.status = 3 THEN a.number ELSE 0 END) AS status_3_jami_soni,
+        
+          
+          -- Statuslar bo'yicha narxlar (dollar va so'm)
+          
+          
+          SUM(CASE WHEN a.status = 3 AND a.currency_id = 1 THEN a.price ELSE 0 END) AS status_3_narx_dollar,
+          SUM(CASE WHEN a.status = 3 AND a.currency_id = 2 THEN a.price ELSE 0 END) AS status_3_narx_sum,
+      DATE_FORMAT(n.created, '%d/%m/%Y %H:%i') AS yaratilgan_sana
+    FROM 
+      input_provider AS n 
+    LEFT JOIN      
+      input_product AS a ON a.provider_id = n.id 
+    LEFT JOIN 
+      counterparty AS b ON b.id = n.counterparty_id 
+    WHERE 
+      n.created BETWEEN ? AND ? AND a.status = 1
+    GROUP BY 
+      n.id, b.name;
+  `,
+          [`${start} 00:00:00`, `${end} 23:59:59`]
+      );
+      return res.json({ success: true, input: data[0] });
+  } catch (error) {
+      return res.status(500).json({ success: false, error: error.message });
+  }
+};
 
-//  bu status = 1 uchun
-exports.getInput_proSearch = async (req, res) => {
+//  bu status  1 prixod
+exports.getInput_proSearch1 = async (req, res) => {
   const { name } = req.query;
   const knex = await Input_pro.knex();
   try {
@@ -244,6 +337,94 @@ exports.getInput_proSearch = async (req, res) => {
       SUM(CASE WHEN a.status = 1 AND a.currency_id = 1 THEN a.price ELSE 0 END) AS status_1_narx_dollar,
       SUM(CASE WHEN a.status = 1 AND a.currency_id = 2 THEN a.price ELSE 0 END) AS status_1_narx_sum,
       
+      DATE_FORMAT(n.created, '%d/%m/%Y %H:%i') AS yaratilgan_sana
+    FROM 
+      input_provider AS n 
+    LEFT JOIN      
+      input_product AS a ON a.provider_id = n.id 
+    LEFT JOIN 
+      counterparty AS b ON b.id = n.counterparty_id 
+    WHERE 
+      b.name LIKE ? AND a.status = 1
+    GROUP BY 
+      n.id, n.counterparty_id, b.name, n.created;
+  `,
+          [`${name}%`]
+      );
+      return res.json({ success: true, input: data[0] });
+  } catch (error) {
+      return res.status(500).json({ success: false, error: error.message });
+  }
+};
+// bu status 2 rasxod
+exports.getInput_proSearch2 = async (req, res) => {
+  const { name } = req.query;
+  const knex = await Input_pro.knex();
+  try {
+      const data = await knex.raw(
+          `
+          SELECT 
+          n.id, 
+          n.counterparty_id, 
+          b.name,
+          
+          -- Statuslar bo'yicha mahsulotlar soni va jami soni
+      
+          COUNT(CASE WHEN a.status = 2 THEN a.product_id ELSE NULL END) AS status_2_product_soni,
+      
+      
+          SUM(CASE WHEN a.status = 2 THEN a.number ELSE 0 END) AS status_2_jami_soni,
+      
+          -- Statuslar bo'yicha narxlar (dollar va so'm)
+      
+          
+          SUM(CASE WHEN a.status = 2 AND a.currency_id = 1 THEN a.price ELSE 0 END) AS status_2_narx_dollar,
+          SUM(CASE WHEN a.status = 2 AND a.currency_id = 2 THEN a.price ELSE 0 END) AS status_2_narx_sum,
+      DATE_FORMAT(n.created, '%d/%m/%Y %H:%i') AS yaratilgan_sana
+    FROM 
+      input_provider AS n 
+    LEFT JOIN      
+      input_product AS a ON a.provider_id = n.id 
+    LEFT JOIN 
+      counterparty AS b ON b.id = n.counterparty_id 
+    WHERE 
+      b.name LIKE ? AND a.status = 1
+    GROUP BY 
+      n.id, n.counterparty_id, b.name, n.created;
+  `,
+          [`${name}%`]
+      );
+      return res.json({ success: true, input: data[0] });
+  } catch (error) {
+      return res.status(500).json({ success: false, error: error.message });
+  }
+};
+// bu status 3 vazvrat
+exports.getInput_proSearch3 = async (req, res) => {
+  const { name } = req.query;
+  const knex = await Input_pro.knex();
+  try {
+      const data = await knex.raw(
+          `
+          SELECT 
+          n.id, 
+          n.counterparty_id, 
+          b.name,
+          
+          -- Statuslar bo'yicha mahsulotlar soni va jami soni
+         
+          COUNT(CASE WHEN a.status = 3 THEN a.product_id ELSE NULL END) AS status_3_product_soni,
+         
+          
+          
+          SUM(CASE WHEN a.status = 3 THEN a.number ELSE 0 END) AS status_3_jami_soni,
+        
+          
+          -- Statuslar bo'yicha narxlar (dollar va so'm)
+          
+          
+          SUM(CASE WHEN a.status = 3 AND a.currency_id = 1 THEN a.price ELSE 0 END) AS status_3_narx_dollar,
+          SUM(CASE WHEN a.status = 3 AND a.currency_id = 2 THEN a.price ELSE 0 END) AS status_3_narx_sum,
       DATE_FORMAT(n.created, '%d/%m/%Y %H:%i') AS yaratilgan_sana
     FROM 
       input_provider AS n 
