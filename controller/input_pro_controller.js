@@ -52,6 +52,8 @@ LEFT JOIN
   input_product AS a ON a.provider_id = n.id
 LEFT JOIN 
   counterparty AS b ON b.id = n.counterparty_id
+  WHERE 
+      a.status = 1 OR a.status IS NULL
 GROUP BY 
   n.id, b.name
 ORDER BY
@@ -94,6 +96,8 @@ exports.getstatus2 = async (req, res) => {
     input_product AS a ON a.provider_id = n.id
   LEFT JOIN 
     counterparty AS b ON b.id = n.counterparty_id
+    WHERE 
+    a.status = 2 OR a.status IS NULL
   GROUP BY 
     n.id, b.name
   ORDER BY
@@ -137,6 +141,8 @@ exports.getstatus3 = async (req, res) => {
     input_product AS a ON a.provider_id = n.id
   LEFT JOIN 
     counterparty AS b ON b.id = n.counterparty_id
+    WHERE 
+    a.status = 3 OR a.status IS NULL
   GROUP BY 
     n.id, b.name
   ORDER BY
@@ -179,6 +185,7 @@ exports.delInput_pro = async (req, res) => {
         return res.status(500).json({ success: false, error: e.message });
     }
 };
+
 //  bu status = 1 prixod
 exports.getInput_proTime1 = async (req, res) => {
     const { startDate, endDate } = req.body;
@@ -221,6 +228,7 @@ exports.getInput_proTime1 = async (req, res) => {
         return res.status(500).json({ success: false, error: error.message });
     }
 };
+
 //  bu status 2  rasxod
 exports.getInput_proTime2 = async (req, res) => {
   const { startDate, endDate } = req.body;
@@ -257,7 +265,7 @@ exports.getInput_proTime2 = async (req, res) => {
     LEFT JOIN 
       counterparty AS b ON b.id = n.counterparty_id 
     WHERE 
-      n.created BETWEEN ? AND ? AND a.status = 1
+      n.created BETWEEN ? AND ? AND a.status = 2
     GROUP BY 
       n.id, b.name;
   `,
@@ -268,6 +276,7 @@ exports.getInput_proTime2 = async (req, res) => {
       return res.status(500).json({ success: false, error: error.message });
   }
 };
+
 // bu status 3 vazvrat
 exports.getInput_proTime3 = async (req, res) => {
   const { startDate, endDate } = req.body;
@@ -305,7 +314,7 @@ exports.getInput_proTime3 = async (req, res) => {
     LEFT JOIN 
       counterparty AS b ON b.id = n.counterparty_id 
     WHERE 
-      n.created BETWEEN ? AND ? AND a.status = 1
+      n.created BETWEEN ? AND ? AND a.status = 3
     GROUP BY 
       n.id, b.name;
   `,
@@ -349,13 +358,14 @@ exports.getInput_proSearch1 = async (req, res) => {
     GROUP BY 
       n.id, n.counterparty_id, b.name, n.created;
   `,
-          [`${name}%`]
+          [`${name}%`] 
       );
       return res.json({ success: true, input: data[0] });
   } catch (error) {
       return res.status(500).json({ success: false, error: error.message });
   }
 };
+
 // bu status 2 rasxod
 exports.getInput_proSearch2 = async (req, res) => {
   const { name } = req.query;
@@ -388,7 +398,7 @@ exports.getInput_proSearch2 = async (req, res) => {
     LEFT JOIN 
       counterparty AS b ON b.id = n.counterparty_id 
     WHERE 
-      b.name LIKE ? AND a.status = 1
+      b.name LIKE ? AND a.status = 2
     GROUP BY 
       n.id, n.counterparty_id, b.name, n.created;
   `,
@@ -399,6 +409,7 @@ exports.getInput_proSearch2 = async (req, res) => {
       return res.status(500).json({ success: false, error: error.message });
   }
 };
+
 // bu status 3 vazvrat
 exports.getInput_proSearch3 = async (req, res) => {
   const { name } = req.query;
@@ -433,7 +444,7 @@ exports.getInput_proSearch3 = async (req, res) => {
     LEFT JOIN 
       counterparty AS b ON b.id = n.counterparty_id 
     WHERE 
-      b.name LIKE ? AND a.status = 1
+      b.name LIKE ? AND a.status = 3
     GROUP BY 
       n.id, n.counterparty_id, b.name, n.created;
   `,

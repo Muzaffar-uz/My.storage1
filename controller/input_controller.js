@@ -1,5 +1,7 @@
  const Input = require('../models/input_models')
 const Product = require('../models/product_models')
+const Counterparty = require('../models/counterparty_models')
+const input_provider = require('../models/input_pro_models')
 const XLSX = require('xlsx');
 
 
@@ -58,24 +60,46 @@ exports.postInput = async (req, res) => {
   try {
     const status = parseInt(req.body.status);
     const provider_id = req.params.id;
+   
 
     if (status === 1) {
       // kirgizsh tavarni
       const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
-      
       const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
-      
-      // 3. Yangi totalni hisoblash
+    // Yangi totalni hisoblas 
       const newTotal = parseInt(lastAddedNumber) + parseInt(req.body.number);
-      
+
+
+  // Oxirgi balansni olish va uni tekshirish
+  const lastbalance = await Input.query().where('provider_id', provider_id).orderBy('id', 'desc').first();
+// `lastbalance.balance` null bo‘lsa, 0 qiymatini qo‘yish
+const lastbalanceCount = lastbalance && lastbalance.balance != null ? parseInt(lastbalance.balance) : 0;
+// `price` ni raqamga o‘zgartirish va `NaN`ga tekshirish
+const price = parseInt(req.body.price);
+if (isNaN(price)) {return res.status(400).json({success: false,message: 'Noto\'g\'ri `price` qiymati',
+  });
+}
+// Yangi balansni hisoblash
+const newBalance = lastbalanceCount + price;
+  // Agar `newBalance` NaN bo‘lsa, uni 0 qilib qo‘yish
+  const finalBalance = isNaN(newBalance) ? 0 : newBalance;
+ 
+const customer  =  await input_provider.query().where('id', provider_id).first()
+if(!customer){
+  return res.status(404).json({ success: false, msg: 'customer not here' })
+}
+const counterparty_id = customer ? customer.counterparty_id : 0
+
       await Input.query().insert({
           provider_id: provider_id,
+          counterparty_id : counterparty_id,
           status: status,
           product_id: req.body.product_id,
           number: Number(req.body.number),
           currency_id: req.body.currency_id,
           price: req.body.price,
           total: newTotal,
+          balance: finalBalance,
           created: req.body.created, });
 
 
@@ -93,12 +117,23 @@ exports.postInput = async (req, res) => {
         });
       }
 
-        return res.status(200).json({
+      // counterparty_id mavjudligini tekshirish
+
+// counterparty_id va provider_id ga mos yozuvni olish
+const counterparty = await Counterparty.query().where('id', counterparty_id).first();
+
+if (counterparty) {
+  const currentbalance = parseInt(counterparty.balance) || 0;
+  await Counterparty.query().where('id', counterparty_id).update({
+      balance: currentbalance + parseInt(req.body.price),
+    });
+   }
+return res.status(200).json({
           success: true,
           message: 'Data inserted and total updated successfully',
           total: newTotal,
         });
-      }
+     }
       
       if(status === 2){
         // sotish chiqishi
