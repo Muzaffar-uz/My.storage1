@@ -80,7 +80,7 @@ if (isNaN(price)) {return res.status(400).json({success: false,message: 'Noto\'g
   });
 }
 // Yangi balansni hisoblash
-const newBalance = lastbalanceCount + price;
+const newBalance = lastbalanceCount - price;
   // Agar `newBalance` NaN bo‘lsa, uni 0 qilib qo‘yish
   const finalBalance = isNaN(newBalance) ? 0 : newBalance;
  
@@ -125,7 +125,7 @@ const counterparty = await Counterparty.query().where('id', counterparty_id).fir
 if (counterparty) {
   const currentbalance = parseInt(counterparty.balance) || 0;
   await Counterparty.query().where('id', counterparty_id).update({
-      balance: currentbalance + parseInt(req.body.price),
+      balance: currentbalance - parseInt(req.body.price),
     });
    }
 return res.status(200).json({
@@ -135,6 +135,7 @@ return res.status(200).json({
         });
      }
       
+     
       if(status === 2){
         // sotish chiqishi
         const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
@@ -143,17 +144,39 @@ return res.status(200).json({
       
       // 3. Yangi totalni hisoblash
       const newTotal = parseInt(lastAddedNumber) - parseInt(req.body.number);
-    
-      await Input.query().insert({
-          provider_id: provider_id,
-          status: status,
-          product_id: req.body.product_id,
-          number: Number(req.body.number),
-          currency_id: req.body.currency_id,
-          price: req.body.price,
-          total: newTotal,
-          created: req.body.created, });
 
+      
+  // Oxirgi balansni olish va uni tekshirish
+  const lastbalance = await Input.query().where('provider_id', provider_id).orderBy('id', 'desc').first();
+  // `lastbalance.balance` null bo‘lsa, 0 qiymatini qo‘yish
+  const lastbalanceCount = lastbalance && lastbalance.balance != null ? parseInt(lastbalance.balance) : 0;
+  // `price` ni raqamga o‘zgartirish va `NaN`ga tekshirish
+  const price = parseInt(req.body.price);
+  if (isNaN(price)) {return res.status(400).json({success: false,message: 'Noto\'g\'ri `price` qiymati',
+    });
+  }
+  // Yangi balansni hisoblash
+  const newBalance = lastbalanceCount + price;
+    // Agar `newBalance` NaN bo‘lsa, uni 0 qilib qo‘yish
+    const finalBalance = isNaN(newBalance) ? 0 : newBalance;
+   
+  const customer  =  await input_provider.query().where('id', provider_id).first()
+  if(!customer){
+    return res.status(404).json({ success: false, msg: 'customer not here' })
+  }
+  const counterparty_id = customer ? customer.counterparty_id : 0
+    
+  await Input.query().insert({
+    provider_id: provider_id,
+    counterparty_id : counterparty_id,
+    status: status,
+    product_id: req.body.product_id,
+    number: Number(req.body.number),
+    currency_id: req.body.currency_id,
+    price: req.body.price,
+    total: newTotal,
+    balance: finalBalance,
+    created: req.body.created, });
 
               // Retrieve and update product count
       const product = await Product.query().where('id', req.body.product_id).first();
@@ -168,6 +191,17 @@ return res.status(200).json({
           message: 'Product not found',
         });
       }
+
+      
+// counterparty_id va provider_id ga mos yozuvni olish
+const counterparty = await Counterparty.query().where('id', counterparty_id).first();
+
+if (counterparty) {
+  const currentbalance = parseInt(counterparty.balance) || 0;
+  await Counterparty.query().where('id', counterparty_id).update({
+      balance: currentbalance + parseInt(req.body.price),
+    });
+   }
 
         return res.status(200).json({
           success: true,
@@ -184,17 +218,38 @@ return res.status(200).json({
       // 3. Yangi totalni hisoblash
       const newTotal = parseInt(lastAddedNumber) + parseInt(req.body.number);
     
-      await Input.query().insert({
-          provider_id: provider_id,
-          status: status,
-          product_id: req.body.product_id,
-          number: Number(req.body.number),
-          currency_id: req.body.currency_id,
-          price: req.body.price,
-          total: newTotal,
-          created: req.body.created, });
-
-
+    
+  // Oxirgi balansni olish va uni tekshirish
+  const lastbalance = await Input.query().where('provider_id', provider_id).orderBy('id', 'desc').first();
+  // `lastbalance.balance` null bo‘lsa, 0 qiymatini qo‘yish
+  const lastbalanceCount = lastbalance && lastbalance.balance != null ? parseInt(lastbalance.balance) : 0;
+  // `price` ni raqamga o‘zgartirish va `NaN`ga tekshirish
+  const price = parseInt(req.body.price);
+  if (isNaN(price)) {return res.status(400).json({success: false,message: 'Noto\'g\'ri `price` qiymati',
+    });
+  }
+  // Yangi balansni hisoblash
+  const newBalance = lastbalanceCount - price;
+    // Agar `newBalance` NaN bo‘lsa, uni 0 qilib qo‘yish
+    const finalBalance = isNaN(newBalance) ? 0 : newBalance;
+   
+  const customer  =  await input_provider.query().where('id', provider_id).first()
+  if(!customer){
+    return res.status(404).json({ success: false, msg: 'customer not here' })
+  }
+  const counterparty_id = customer ? customer.counterparty_id : 0
+  
+        await Input.query().insert({
+            provider_id: provider_id,
+            counterparty_id : counterparty_id,
+            status: status,
+            product_id: req.body.product_id,
+            number: Number(req.body.number),
+            currency_id: req.body.currency_id,
+            price: req.body.price,
+            total: newTotal,
+            balance: finalBalance,
+            created: req.body.created, });
               // Retrieve and update product count
       const product = await Product.query().where('id', req.body.product_id).first();
       if (product) {
@@ -208,53 +263,95 @@ return res.status(200).json({
           message: 'Product not found',
         });
       }
+      
+// counterparty_id va provider_id ga mos yozuvni olish
+const counterparty = await Counterparty.query().where('id', counterparty_id).first();
 
-        return res.status(200).json({
+if (counterparty) {
+  const currentbalance = parseInt(counterparty.balance) || 0;
+  await Counterparty.query().where('id', counterparty_id).update({
+      balance: currentbalance - parseInt(req.body.price),
+    });
+   }
+
+
+
+return res.status(200).json({
           success: true,
           message: 'Data inserted and total updated successfully',
           total: newTotal,
         });
       }
-      if(status === 4){
-        // o'chrish
-        const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
       
-        const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
+      if (status === 4) {
+        // Oxirgi amalni olish
+        const lastAction = await Input.query()
+          .where('product_id', req.body.product_id)
+          .andWhere('provider_id', provider_id)
+          .orderBy('id', 'desc')
+          .first();
         
-        // 3. Yangi totalni hisoblash
-        const newTotal = parseInt(lastAddedNumber) - parseInt(req.body.number);
-      
-        await Input.query().insert({
-            provider_id: provider_id,
-            status: status,
-            product_id: req.body.product_id,
-            number: Number(req.body.number),
-            currency_id: req.body.currency_id,
-            price: req.body.price,
-            total: newTotal,
-            created: req.body.created, });
-  
-  
-                // Retrieve and update product count
-        const product = await Product.query().where('id', req.body.product_id).first();
-        if (product) {
-          const currentCount = parseInt(product.count) || 0; // Ensure count is an integer
-          await Product.query().where('id', req.body.product_id).update({
-            count: currentCount - parseInt(req.body.number),
-          });
-        } else {
+        if (!lastAction) {
           return res.status(404).json({
             success: false,
-            message: 'Product not found',
+            message: 'Oldingi amal topilmadi',
           });
         }
-  
-          return res.status(200).json({
-            success: true,
-            message: 'Data inserted and total updated successfully',
-            total: newTotal,
-          });
+      
+        const lastStatus = lastAction.status;
+        const number = parseInt(lastAction.number);
+        const price = parseInt(lastAction.price);
+      
+        // Mahsulot va counterparty balansi uchun oldingi amalni bekor qilish
+        if (lastStatus === 1) { // Qo'shish amalini bekor qilish
+          await Product.query()
+            .where('id', req.body.product_id)
+            .decrement('count', number);
+      
+          await Counterparty.query()
+            .where('id', lastAction.counterparty_id)
+            .increment('balance', price);
+      
+        } else if (lastStatus === 2) { // Sotish amalini bekor qilish
+          await Product.query()
+            .where('id', req.body.product_id)
+            .increment('count', number);
+      
+          await Counterparty.query()
+            .where('id', lastAction.counterparty_id)
+            .decrement('balance', price);
+      
+        } else if (lastStatus === 3) { // Qaytarish amalini bekor qilish
+          await Product.query()
+            .where('id', req.body.product_id)
+            .decrement('count', number);
+      
+          await Counterparty.query()
+            .where('id', lastAction.counterparty_id)
+            .increment('balance', price);
         }
+      
+        // O'chirish amalini kiritish
+        const newTotal = parseInt(lastAction.total) - number;
+        await Input.query().insert({
+          provider_id: provider_id,
+          counterparty_id: lastAction.counterparty_id,
+          status: status,
+          product_id: req.body.product_id,
+          number: number,
+          currency_id: req.body.currency_id,
+          price: price,
+          total: newTotal,
+          created: req.body.created,
+        });
+      
+        return res.status(200).json({
+          success: true,
+          message: 'O\'chirish amalga oshirildi va oldingi holat tiklandi',
+          total: newTotal,
+        });
+      }
+      
   } catch (e) {
     return res.status(500).json({ success: false, msg: e.message });
   }
