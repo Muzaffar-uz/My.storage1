@@ -368,12 +368,95 @@ exports.putInput = async (req, res) => {
       }
 }
 
- exports.delInput = async (req, res) => {
-  try{ await Input.query().where('id',req.params.id).delete()
-  return res.status(200).json({success:true})}catch(e){
-      res.status(500).json({ error: e});
+exports.delInput = async (req, res) => {
+  try {
+    const startId = req.params.id; // Bosilgan ID
+
+    const input = await Input.query().where('id', startId).first();
+
+    if (!input) {
+      return res.status(404).json({ success: false, message: 'Entry not found' });
+    }
+
+    const { product_id, provider_id, number, price } = input;
+
+    // 1. Bosilgan IDni 4-statusga yangilash
+    await Input.query().where('id', startId).update({ status: 4 });
+
+    // 2. IDdan keyingi yozuvlarni olish (shu product_id va provider_id bo'yicha)
+    const tabletotal = await Input.query()
+      .where('id', '>=', startId)
+      .where('product_id', product_id)
+      .orderBy('id', 'asc');
+
+    const tablebalance = await Input.query()
+      .where('id', '>=', startId)
+      .where('provider_id', provider_id)
+      .orderBy('id', 'asc');
+
+    if (!tabletotal.length && !tablebalance.length) {
+      return res.status(200).json({ success: true, message: 'No further rows to update' });
+    }
+
+    // Product bo'yicha hisob-kitob
+    for (let i = 0; i < tabletotal.length; i++) {
+      let currentTotal = Number(tabletotal[i].total) || 0; // Boshlang'ich total qiymati
+
+      if (tabletotal[i].status == 4) {
+        continue; // Status 4 bo'lsa, o'tkazib yuboriladi
+      }
+
+      if (tabletotal[i].status == 1) {
+        currentTotal -= Number(number); // Kirim holati
+        
+      } else if (tabletotal[i].status == 2) {
+
+        currentTotal += Number(number); // Sotish holati
+
+      } else if (tabletotal[i].status == 3) {
+
+        currentTotal -= Number(number); // Qaytarish holati
+
+      }
+
+      console.log(`Updating Total for ID=${tabletotal[i].id} new currenttotl ${currentTotal}`); // Yangilangan totalni ko'rsatish
+      await Input.query().where('id', tabletotal[i].id).update({ total: currentTotal });
+    }
+
+    // Provider bo'yicha hisob-kitob
+    for (let j = 0; j < tablebalance.length; j++) {
+      let currentBalance = Number(tablebalance[j].balance) || 0; // Boshlang'ich balance qiymati
+
+      if (tablebalance[j].status == 4) {
+        continue; // Status 4 bo'lsa, o'tkazib yuboriladi
+      }
+
+      if (tablebalance[j].status == 1) {
+        currentBalance += Number(price); // Kirim holati
+        console.log(`ID=${tablebalance[j].id} uchun status 1`);
+      } else if (tablebalance[j].status == 2) {
+        currentBalance -= Number(price); // Sotish holati
+      } else if (tablebalance[j].status == 3) {
+        currentBalance += Number(price); // Qaytarish holati
+      }
+
+      console.log(
+        `Updating Balance for ID=${tablebalance[j].id}, New Balance=${currentBalance}`
+      ); // Yangilangan balansni ko'rsatish
+      await Input.query().where('id', tablebalance[j].id).update({ balance: currentBalance });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Status updated and totals recalculated successfully',
+    });
+  } catch (e) {
+    console.error('Error occurred:', e); // Xato haqida konsolga yozish
+    return res.status(500).json({ success: false, error: e.message });
   }
-}
+};
+
+
 
 exports.exportInputToExcel = async (req, res) => {
 
