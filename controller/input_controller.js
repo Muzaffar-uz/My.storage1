@@ -3,6 +3,7 @@ const Product = require('../models/product_models')
 const Counterparty = require('../models/counterparty_models')
 const input_provider = require('../models/input_pro_models')
 const XLSX = require('xlsx');
+const { count } = require('../setting/db');
 
 
 
@@ -178,6 +179,30 @@ exports.delInput = async (req, res) => {
 
     // 1. Bosilgan IDni 4-statusga yangilash
     await Input.query().where('id', startId).update({ status: 4 });
+
+    const counterparty = await Counterparty.query().where('id', provider_id).first();
+    const upbalance = counterparty ? parseFloat(counterparty.balance) : 0;
+    
+    if (!counterparty) {
+      return res.status(404).json({ success: false, message: 'Counterparty not found' });
+    }
+    
+    // Balansni yangilash mantiq
+    const updatedBalance = upbalance >= 0 
+      ? upbalance - parseFloat(number * price) // Balans musbat bo‘lsa, ayriladi
+      : upbalance + parseFloat(number * price); // Balans manfiy bo‘lsa, qo‘shiladi
+    
+    await Counterparty.query().where('id', provider_id).update({ balance: updatedBalance });
+
+    const product = await Product.query().where('id',product_id).first()
+    const upcount = product ? parseFloat(product.count) : 0
+    if(!product){
+      return res.status(404).json({success: false, msg: "Product not found"})
+    }
+
+    const updatecount = upcount >= 0 ? upcount - parseFloat(number) : upcount + parseFloat(number)
+
+    await Product.query().where('id',product_id).update({count: updatecount})
 
     // 2. IDdan keyingi yozuvlarni olish (shu product_id va provider_id bo'yicha)
     const tabletotal = await Input.query()
