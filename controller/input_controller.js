@@ -55,307 +55,103 @@ exports.getProduct = async (req, res) => {
 
 
 
-
 exports.postInput = async (req, res) => {
   try {
-    const status = parseInt(req.body.status);
+    const status = parseFloat(req.body.status); // parseFloat ishlatiladi
     const provider_id = req.params.id;
-   
 
-    if (status === 1) {
-      // kirgizsh tavarni
-      const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
-      const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
-    // Yangi totalni hisoblas 
-      const newTotal = parseInt(lastAddedNumber) + parseInt(req.body.number);
+    // Statusni tekshirish (faqat 1, 2 yoki 3 qabul qilinadi)
+    if (![1, 2, 3].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Noto‘g‘ri `status` qiymati. Faqat 1, 2 yoki 3 qabul qilinadi.',
+      });
+    }
 
+    // Qo‘llaniladigan qiymatlarni olish
+    const product_id = req.body.product_id;
+    const number = parseFloat(req.body.number);
+    const price = parseFloat(req.body.price);
+    const currency_id = req.body.currency_id;
+    const created = req.body.created;
 
-  // Oxirgi balansni olish va uni tekshirish
-  const lastbalance = await Input.query().where('provider_id', provider_id).orderBy('id', 'desc').first();
-// `lastbalance.balance` null bo‘lsa, 0 qiymatini qo‘yish
-const lastbalanceCount = lastbalance && lastbalance.balance != null ? parseInt(lastbalance.balance) : 0;
-// `price` ni raqamga o‘zgartirish va `NaN`ga tekshirish
-const price = parseInt(req.body.price);
-if (isNaN(price)) {return res.status(400).json({success: false,message: 'Noto\'g\'ri `price` qiymati',
-  });
-}
-// Yangi balansni hisoblash
-const newBalance = lastbalanceCount - price;
-  // Agar `newBalance` NaN bo‘lsa, uni 0 qilib qo‘yish
-  const finalBalance = isNaN(newBalance) ? 0 : newBalance;
- 
-const customer  =  await input_provider.query().where('id', provider_id).first()
-if(!customer){
-  return res.status(404).json({ success: false, msg: 'customer not here' })
-}
-const counterparty_id = customer ? customer.counterparty_id : 0
+    if (!product_id || isNaN(number) || isNaN(price)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Noto‘g‘ri `product_id`, `number` yoki `price` qiymati',
+      });
+    }
 
-      await Input.query().insert({
-          provider_id: provider_id,
-          counterparty_id : counterparty_id,
-          status: status,
-          product_id: req.body.product_id,
-          number: Number(req.body.number),
-          currency_id: req.body.currency_id,
-          price: req.body.price,
-          total: newTotal,
-          balance: finalBalance,
-          created: req.body.created, });
+    // Oxirgi qo‘shilgan mahsulotni olish
+    const lastAdded = await Input.query()
+      .where('product_id', product_id)
+      .orderBy('id', 'desc')
+      .first();
 
+    const lastTotal = lastAdded ? parseFloat(lastAdded.total) : 0;
+    const newTotal = status === 2 ? lastTotal - number : lastTotal + number;
 
-              // Retrieve and update product count
-      const product = await Product.query().where('id', req.body.product_id).first();
-      if (product) {
-        const currentCount = parseInt(product.count) || 0; // Ensure count is an integer
-        await Product.query().where('id', req.body.product_id).update({
-          count: currentCount + parseInt(req.body.number),
-        });
-      } else {
-        return res.status(404).json({
-          success: false,
-          message: 'Product not found',
-        });
-      }
+    // Oxirgi balansni olish
+    const lastBalanceRecord = await Input.query()
+      .where('provider_id', provider_id)
+      .orderBy('id', 'desc')
+      .first();
+    const lastBalance = lastBalanceRecord && lastBalanceRecord.balance != null ? parseFloat(lastBalanceRecord.balance) : 0;
 
-      // counterparty_id mavjudligini tekshirish
+    // Yangi balansni hisoblash
+    const newBalance = status === 2 ? lastBalance + (price*number) : lastBalance - (price*number);
 
-// counterparty_id va provider_id ga mos yozuvni olish
-const counterparty = await Counterparty.query().where('id', counterparty_id).first();
+    // Provider ma'lumotlarini olish
+    const customer = await input_provider.query().where('id', provider_id).first();
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Provider not found' });
+    }
+    const counterparty_id = customer.counterparty_id || 0;
 
-if (counterparty) {
-  const currentbalance = parseInt(counterparty.balance) || 0;
-  await Counterparty.query().where('id', counterparty_id).update({
-      balance: currentbalance - parseInt(req.body.price),
+    // Ma'lumotlarni qo'shish
+    await Input.query().insert({
+      provider_id,
+      counterparty_id,
+      status,
+      product_id,
+      number,
+      currency_id,
+      price,
+      total: newTotal,
+      balance: newBalance,
+      created,
     });
-   }
-return res.status(200).json({
-          success: true,
-          message: 'Data inserted and total updated successfully',
-          total: newTotal,
-        });
-     }
-      
-     
-      if(status === 2){
-        // sotish chiqishi
-        const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
-      
-      const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
-      
-      // 3. Yangi totalni hisoblash
-      const newTotal = parseInt(lastAddedNumber) - parseInt(req.body.number);
 
-      
-  // Oxirgi balansni olish va uni tekshirish
-  const lastbalance = await Input.query().where('provider_id', provider_id).orderBy('id', 'desc').first();
-  // `lastbalance.balance` null bo‘lsa, 0 qiymatini qo‘yish
-  const lastbalanceCount = lastbalance && lastbalance.balance != null ? parseInt(lastbalance.balance) : 0;
-  // `price` ni raqamga o‘zgartirish va `NaN`ga tekshirish
-  const price = parseInt(req.body.price);
-  if (isNaN(price)) {return res.status(400).json({success: false,message: 'Noto\'g\'ri `price` qiymati',
+    // Mahsulotni yangilash
+    const product = await Product.query().where('id', product_id).first();
+    if (product) {
+      const currentCount = parseFloat(product.count) || 0;
+      const updatedCount = status === 2 ? currentCount - number : currentCount + number;
+
+      await Product.query().where('id', product_id).update({ count: updatedCount });
+    } else {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    // Counterparty balansini yangilash
+    const counterparty = await Counterparty.query().where('id', counterparty_id).first();
+    if (counterparty) {
+      const currentBalance = parseFloat(counterparty.balance) || 0;
+      const updatedBalance = status === 2 ? currentBalance + (price*number) : currentBalance - (price*number);
+
+      await Counterparty.query().where('id', counterparty_id).update({ balance: updatedBalance });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Data inserted and total updated successfully',
+      total: newTotal,
     });
-  }
-  // Yangi balansni hisoblash
-  const newBalance = lastbalanceCount + price;
-    // Agar `newBalance` NaN bo‘lsa, uni 0 qilib qo‘yish
-    const finalBalance = isNaN(newBalance) ? 0 : newBalance;
-   
-  const customer  =  await input_provider.query().where('id', provider_id).first()
-  if(!customer){
-    return res.status(404).json({ success: false, msg: 'customer not here' })
-  }
-  const counterparty_id = customer ? customer.counterparty_id : 0
-    
-  await Input.query().insert({
-    provider_id: provider_id,
-    counterparty_id : counterparty_id,
-    status: status,
-    product_id: req.body.product_id,
-    number: Number(req.body.number),
-    currency_id: req.body.currency_id,
-    price: req.body.price,
-    total: newTotal,
-    balance: finalBalance,
-    created: req.body.created, });
-
-              // Retrieve and update product count
-      const product = await Product.query().where('id', req.body.product_id).first();
-      if (product) {
-        const currentCount = parseInt(product.count) || 0; // Ensure count is an integer
-        await Product.query().where('id', req.body.product_id).update({
-          count: currentCount - parseInt(req.body.number),
-        });
-      } else {
-        return res.status(404).json({
-          success: false,
-          message: 'Product not found',
-        });
-      }
-
-      
-// counterparty_id va provider_id ga mos yozuvni olish
-const counterparty = await Counterparty.query().where('id', counterparty_id).first();
-
-if (counterparty) {
-  const currentbalance = parseInt(counterparty.balance) || 0;
-  await Counterparty.query().where('id', counterparty_id).update({
-      balance: currentbalance + parseInt(req.body.price),
-    });
-   }
-
-        return res.status(200).json({
-          success: true,
-          message: 'Data inserted and total updated successfully',
-          total: newTotal,
-        });
-      }
-      if(status === 3){
-        // qaytarib olish
-        const lastAdded = await Input.query().where('product_id', req.body.product_id).orderBy('id','desc').first();
-      
-      const lastAddedNumber = lastAdded ? lastAdded.total : 0; // Oxirgi qo'shilgan qiymat yoki 0
-      
-      // 3. Yangi totalni hisoblash
-      const newTotal = parseInt(lastAddedNumber) + parseInt(req.body.number);
-    
-    
-  // Oxirgi balansni olish va uni tekshirish
-  const lastbalance = await Input.query().where('provider_id', provider_id).orderBy('id', 'desc').first();
-  // `lastbalance.balance` null bo‘lsa, 0 qiymatini qo‘yish
-  const lastbalanceCount = lastbalance && lastbalance.balance != null ? parseInt(lastbalance.balance) : 0;
-  // `price` ni raqamga o‘zgartirish va `NaN`ga tekshirish
-  const price = parseInt(req.body.price);
-  if (isNaN(price)) {return res.status(400).json({success: false,message: 'Noto\'g\'ri `price` qiymati',
-    });
-  }
-  // Yangi balansni hisoblash
-  const newBalance = lastbalanceCount - price;
-    // Agar `newBalance` NaN bo‘lsa, uni 0 qilib qo‘yish
-    const finalBalance = isNaN(newBalance) ? 0 : newBalance;
-   
-  const customer  =  await input_provider.query().where('id', provider_id).first()
-  if(!customer){
-    return res.status(404).json({ success: false, msg: 'customer not here' })
-  }
-  const counterparty_id = customer ? customer.counterparty_id : 0
-  
-        await Input.query().insert({
-            provider_id: provider_id,
-            counterparty_id : counterparty_id,
-            status: status,
-            product_id: req.body.product_id,
-            number: Number(req.body.number),
-            currency_id: req.body.currency_id,
-            price: req.body.price,
-            total: newTotal,
-            balance: finalBalance,
-            created: req.body.created, });
-              // Retrieve and update product count
-      const product = await Product.query().where('id', req.body.product_id).first();
-      if (product) {
-        const currentCount = parseInt(product.count) || 0; // Ensure count is an integer
-        await Product.query().where('id', req.body.product_id).update({
-          count: currentCount + parseInt(req.body.number),
-        });
-      } else {
-        return res.status(404).json({
-          success: false,
-          message: 'Product not found',
-        });
-      }
-      
-// counterparty_id va provider_id ga mos yozuvni olish
-const counterparty = await Counterparty.query().where('id', counterparty_id).first();
-
-if (counterparty) {
-  const currentbalance = parseInt(counterparty.balance) || 0;
-  await Counterparty.query().where('id', counterparty_id).update({
-      balance: currentbalance - parseInt(req.body.price),
-    });
-   }
-
-
-
-return res.status(200).json({
-          success: true,
-          message: 'Data inserted and total updated successfully',
-          total: newTotal,
-        });
-      }
-      
-      if (status === 4) {
-        // Oxirgi amalni olish
-        const lastAction = await Input.query()
-          .where('product_id', req.body.product_id)
-          .andWhere('provider_id', provider_id)
-          .orderBy('id', 'desc')
-          .first();
-        
-        if (!lastAction) {
-          return res.status(404).json({
-            success: false,
-            message: 'Oldingi amal topilmadi',
-          });
-        }
-      
-        const lastStatus = lastAction.status;
-        const number = parseInt(lastAction.number);
-        const price = parseInt(lastAction.price);
-      
-        // Mahsulot va counterparty balansi uchun oldingi amalni bekor qilish
-        if (lastStatus === 1) { // Qo'shish amalini bekor qilish
-          await Product.query()
-            .where('id', req.body.product_id)
-            .decrement('count', number);
-      
-          await Counterparty.query()
-            .where('id', lastAction.counterparty_id)
-            .increment('balance', price);
-      
-        } else if (lastStatus === 2) { // Sotish amalini bekor qilish
-          await Product.query()
-            .where('id', req.body.product_id)
-            .increment('count', number);
-      
-          await Counterparty.query()
-            .where('id', lastAction.counterparty_id)
-            .decrement('balance', price);
-      
-        } else if (lastStatus === 3) { // Qaytarish amalini bekor qilish
-          await Product.query()
-            .where('id', req.body.product_id)
-            .decrement('count', number);
-      
-          await Counterparty.query()
-            .where('id', lastAction.counterparty_id)
-            .increment('balance', price);
-        }
-      
-        // O'chirish amalini kiritish
-        const newTotal = parseInt(lastAction.total) - number;
-        await Input.query().insert({
-          provider_id: provider_id,
-          counterparty_id: lastAction.counterparty_id,
-          status: status,
-          product_id: req.body.product_id,
-          number: number,
-          currency_id: req.body.currency_id,
-          price: price,
-          total: newTotal,
-          created: req.body.created,
-        });
-      
-        return res.status(200).json({
-          success: true,
-          message: 'O\'chirish amalga oshirildi va oldingi holat tiklandi',
-          total: newTotal,
-        });
-      }
-      
   } catch (e) {
-    return res.status(500).json({ success: false, msg: e.message });
+    return res.status(500).json({ success: false, message: e.message });
   }
-}
+};
+
 
 
 
