@@ -85,18 +85,21 @@ exports.postInput = async (req, res) => {
 
     // Oxirgi qo‘shilgan mahsulotni olish
     const lastAdded = await Input.query()
-      .where('product_id', product_id)
-      .orderBy('id', 'desc')
-      .first();
+  .where('product_id', product_id)
+  .where('status', '!=', 4)  // Status 4 bo'lmaganlarni olish
+  .orderBy('id', 'desc')
+  .first();
 
     const lastTotal = lastAdded ? parseFloat(lastAdded.total) : 0;
     const newTotal = status === 2 ? lastTotal - number : lastTotal + number;
 
     // Oxirgi balansni olish
     const lastBalanceRecord = await Input.query()
-      .where('provider_id', provider_id)
-      .orderBy('id', 'desc')
-      .first();
+    .where('provider_id', provider_id)
+    .where('currency_id', currency_id) // currency_id bo'yicha filtrlash
+    .where('status', '!=', 4)  // Status 4 bo'lmaganlarni olish
+    .orderBy('id', 'desc')
+    .first();
     const lastBalance = lastBalanceRecord && lastBalanceRecord.balance != null ? parseFloat(lastBalanceRecord.balance) : 0;
 
     // Yangi balansni hisoblash
@@ -138,9 +141,17 @@ exports.postInput = async (req, res) => {
     const counterparty = await Counterparty.query().where('id', counterparty_id).first();
     if (counterparty) {
       const currentBalance = parseFloat(counterparty.balance) || 0;
+      const currentsum = parseFloat(counterparty.balance_sum) || 0;
+      if(currency_id == 1){
       const updatedBalance = status === 2 ? currentBalance + (price*number) : currentBalance - (price*number);
 
       await Counterparty.query().where('id', counterparty_id).update({ balance: updatedBalance });
+      } else if(currency_id == 2){
+        const updatedBalance_sum = status === 2 ? currentsum + (price*number) : currentsum - (price*number);
+
+        await Counterparty.query().where('id', counterparty_id).update({ balance_sum: updatedBalance_sum });
+      }
+
     }
 
     return res.status(200).json({
@@ -187,7 +198,7 @@ if(input.status == 4){
     const product = await Product.query().where('id', product_id).first();
     if (product) {
       const currentCount = parseFloat(product.count) || 0;
-      const updatedCount = status === 2 ? currentCount + number : currentCount - number;
+      const updatedCount = status == 2 ? currentCount + number : currentCount - number;
 
       await Product.query().where('id', product_id).update({ count: updatedCount });
     } else {
@@ -198,7 +209,7 @@ if(input.status == 4){
     const counterparty = await Counterparty.query().where('id', counterparty_id).first();
     if (counterparty) {
       const currentBalance = parseFloat(counterparty.balance) || 0;
-      const updatedBalance = status === 2 ? currentBalance - (price*number) : currentBalance + (price*number);
+      const updatedBalance = status == 2 ? currentBalance - (price*number) : currentBalance + (price*number);
 
       await Counterparty.query().where('id', counterparty_id).update({ balance: updatedBalance });
     }
