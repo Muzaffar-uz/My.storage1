@@ -177,35 +177,31 @@ exports.delInput = async (req, res) => {
 if(input.status == 4){
   return res.status(404).json({success: false, msg: 'This has been deleted.'})
 }
-    const { product_id, provider_id, number, price,counterparty_id } = input;
+    const { product_id, provider_id, number, price,counterparty_id,status} = input;
    
 
     // 1. Bosilgan IDni 4-statusga yangilash
     await Input.query().where('id', startId).update({ status: 4 });
 
+    // Mahsulotni yangilash
+    const product = await Product.query().where('id', product_id).first();
+    if (product) {
+      const currentCount = parseFloat(product.count) || 0;
+      const updatedCount = status === 2 ? currentCount + number : currentCount - number;
+
+      await Product.query().where('id', product_id).update({ count: updatedCount });
+    } else {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    // Counterparty balansini yangilash
     const counterparty = await Counterparty.query().where('id', counterparty_id).first();
-    const upbalance = counterparty ? parseFloat(counterparty.balance) : 0;
-    if (!counterparty) {
-      return res.status(404).json({ success: false, message: 'Counterparty not found' });
+    if (counterparty) {
+      const currentBalance = parseFloat(counterparty.balance) || 0;
+      const updatedBalance = status === 2 ? currentBalance - (price*number) : currentBalance + (price*number);
+
+      await Counterparty.query().where('id', counterparty_id).update({ balance: updatedBalance });
     }
-    
-    // Balansni yangilash mantiq
-    const updatedBalance = upbalance >= 0 
-      ? upbalance - parseFloat(number * price) // Balans musbat bo‘lsa, ayriladi
-      : upbalance + parseFloat(number * price); // Balans manfiy bo‘lsa, qo‘shiladi
-    await Counterparty.query().where('id', counterparty_id).update({ balance: updatedBalance });
-
-// product
-    const product = await Product.query().where('id',product_id).first()
-    const upcount = product ? parseFloat(product.count) : 0
-    if(!product){
-      return res.status(404).json({success: false, msg: "Product not found"})
-    }
-
-    const updatecount = upcount >= 0 ? upcount - parseFloat(number) : upcount + parseFloat(number)
-
-    await Product.query().where('id',product_id).update({count: updatecount})
-
     // 2. IDdan keyingi yozuvlarni olish (shu product_id va provider_id bo'yicha)
     const tabletotal = await Input.query()
       .where('id', '>=', startId)
@@ -229,8 +225,10 @@ if(input.status == 4){
         continue; // Status 4 bo'lsa, o'tkazib yuboriladi
       }
 
-     if (!tabletotal[i].status == 4) {
-      currentTotal -= parseFloat(number); // Kirim holati
+     if (status == 2) {
+      currentTotal += parseFloat(number); // orqa qaytish olingandi endi qo'shiladi
+}else if(status == 1 || status == 3){
+       currentTotal -= parseFloat(number)
 }
       
       await Input.query().where('id', tabletotal[i].id).update({ total: currentTotal });
@@ -244,13 +242,11 @@ if(input.status == 4){
         continue; // Status 4 bo'lsa, o'tkazib yuboriladi
       }
 
-      if (!tablebalance[j].status == 4) {
-        currentBalance += Number(price*number); // Kirim holati`
-        
-      } else if (tablebalance[j].status == 2) {
-        currentBalance -= Number(price*number); // Sotish holati
-      } else if (tablebalance[j].status == 3) {
-        currentBalance += Number(price*number) // Qaytarish holati
+      if (status == 2) {
+        currentBalance -= Number(price*number); // Kirim holati`
+         
+      } else if  (status == 1 || status == 3) {
+        currentBalance += Number(price*number)
       }
 
       await Input.query().where('id', tablebalance[j].id).update({ balance: currentBalance });
