@@ -174,15 +174,17 @@ exports.delInput = async (req, res) => {
     if (!input) {
       return res.status(404).json({ success: false, message: 'Entry not found' });
     }
-
-    const { product_id, provider_id, number, price } = input;
+if(input.status == 4){
+  return res.status(404).json({success: false, msg: 'This has been deleted.'})
+}
+    const { product_id, provider_id, number, price,counterparty_id } = input;
+   
 
     // 1. Bosilgan IDni 4-statusga yangilash
     await Input.query().where('id', startId).update({ status: 4 });
 
-    const counterparty = await Counterparty.query().where('id', provider_id).first();
+    const counterparty = await Counterparty.query().where('id', counterparty_id).first();
     const upbalance = counterparty ? parseFloat(counterparty.balance) : 0;
-    
     if (!counterparty) {
       return res.status(404).json({ success: false, message: 'Counterparty not found' });
     }
@@ -191,9 +193,9 @@ exports.delInput = async (req, res) => {
     const updatedBalance = upbalance >= 0 
       ? upbalance - parseFloat(number * price) // Balans musbat bo‘lsa, ayriladi
       : upbalance + parseFloat(number * price); // Balans manfiy bo‘lsa, qo‘shiladi
-    
-    await Counterparty.query().where('id', provider_id).update({ balance: updatedBalance });
+    await Counterparty.query().where('id', counterparty_id).update({ balance: updatedBalance });
 
+// product
     const product = await Product.query().where('id',product_id).first()
     const upcount = product ? parseFloat(product.count) : 0
     if(!product){
@@ -221,49 +223,36 @@ exports.delInput = async (req, res) => {
 
     // Product bo'yicha hisob-kitob
     for (let i = 0; i < tabletotal.length; i++) {
-      let currentTotal = Number(tabletotal[i].total) || 0; // Boshlang'ich total qiymati
+      let currentTotal = parseFloat(tabletotal[i].total) || 0; // Boshlang'ich total qiymati
 
       if (tabletotal[i].status == 4) {
         continue; // Status 4 bo'lsa, o'tkazib yuboriladi
       }
 
-      if (tabletotal[i].status == 1) {
-        currentTotal -= Number(number); // Kirim holati
-        
-      } else if (tabletotal[i].status == 2) {
-
-        currentTotal += Number(number); // Sotish holati
-
-      } else if (tabletotal[i].status == 3) {
-
-        currentTotal -= Number(number); // Qaytarish holati
-
-      }
-
-      console.log(`Updating Total for ID=${tabletotal[i].id} new currenttotl ${currentTotal}`); // Yangilangan totalni ko'rsatish
+     if (!tabletotal[i].status == 4) {
+      currentTotal -= parseFloat(number); // Kirim holati
+}
+      
       await Input.query().where('id', tabletotal[i].id).update({ total: currentTotal });
     }
 
     // Provider bo'yicha hisob-kitob
     for (let j = 0; j < tablebalance.length; j++) {
-      let currentBalance = Number(tablebalance[j].balance) || 0; // Boshlang'ich balance qiymati
+      let currentBalance = parseFloat(tablebalance[j].balance) || 0; // Boshlang'ich balance qiymati
 
       if (tablebalance[j].status == 4) {
         continue; // Status 4 bo'lsa, o'tkazib yuboriladi
       }
 
-      if (tablebalance[j].status == 1) {
-        currentBalance += Number(price); // Kirim holati
-        console.log(`ID=${tablebalance[j].id} uchun status 1`);
+      if (!tablebalance[j].status == 4) {
+        currentBalance += Number(price*number); // Kirim holati`
+        
       } else if (tablebalance[j].status == 2) {
-        currentBalance -= Number(price); // Sotish holati
+        currentBalance -= Number(price*number); // Sotish holati
       } else if (tablebalance[j].status == 3) {
-        currentBalance += Number(price); // Qaytarish holati
+        currentBalance += Number(price*number) // Qaytarish holati
       }
 
-      console.log(
-        `Updating Balance for ID=${tablebalance[j].id}, New Balance=${currentBalance}`
-      ); // Yangilangan balansni ko'rsatish
       await Input.query().where('id', tablebalance[j].id).update({ balance: currentBalance });
     }
 
@@ -272,7 +261,6 @@ exports.delInput = async (req, res) => {
       message: 'Status updated and totals recalculated successfully',
     });
   } catch (e) {
-    console.error('Error occurred:', e); // Xato haqida konsolga yozish
     return res.status(500).json({ success: false, error: e.message });
   }
 };
