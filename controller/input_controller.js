@@ -151,8 +151,7 @@ exports.postInput = async (req, res) => {
 
         await Counterparty.query().where('id', counterparty_id).update({ balance_sum: updatedBalance_sum });
       }
-
-    }
+ }
 
     return res.status(200).json({
       success: true,
@@ -188,7 +187,7 @@ exports.delInput = async (req, res) => {
 if(input.status == 4){
   return res.status(404).json({success: false, msg: 'This has been deleted.'})
 }
-    const { product_id, provider_id, number, price,counterparty_id,status} = input;
+    const { product_id, provider_id, number, price,counterparty_id,status,currency_id} = input;
    
 
     // 1. Bosilgan IDni 4-statusga yangilash
@@ -209,9 +208,16 @@ if(input.status == 4){
     const counterparty = await Counterparty.query().where('id', counterparty_id).first();
     if (counterparty) {
       const currentBalance = parseFloat(counterparty.balance) || 0;
-      const updatedBalance = status == 2 ? currentBalance - (price*number) : currentBalance + (price*number);
+      const currentsum = parseFloat(counterparty.balance_sum) || 0;
+    if(currency_id == 1){
+      const updatedBalance = status === 2 ? currentBalance - (price*number) : currentBalance + (price*number);
 
       await Counterparty.query().where('id', counterparty_id).update({ balance: updatedBalance });
+      } else if(currency_id == 2){
+        const updatedBalance_sum = status === 2 ? currentsum - (price*number) : currentsum + (price*number);
+
+        await Counterparty.query().where('id', counterparty_id).update({ balance_sum: updatedBalance_sum });
+      }
     }
     // 2. IDdan keyingi yozuvlarni olish (shu product_id va provider_id bo'yicha)
     const tabletotal = await Input.query()
@@ -253,12 +259,15 @@ if(input.status == 4){
         continue; // Status 4 bo'lsa, o'tkazib yuboriladi
       }
 
-      if (status == 2) {
-        currentBalance -= Number(price*number); // Kirim holati`
-         
-      } else if  (status == 1 || status == 3) {
-        currentBalance += Number(price*number)
+      if (parseFloat(currency_id) === parseFloat(tablebalance[j].currency_id)) {
+        if (status == 2) {
+          currentBalance -= Number(price * number); // Kirim holati
+        } else if (status == 1 || status == 3) {
+          currentBalance += Number(price * number); // Chiqim yoki qaytarish holati
+        }
+
       }
+      
 
       await Input.query().where('id', tablebalance[j].id).update({ balance: currentBalance });
     }

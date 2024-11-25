@@ -171,6 +171,11 @@ exports.postInput_pro = async (req, res) => {
 exports.putInput_pro = async (req, res) => {
     try {
         await Input_pro.query().findOne('id', req.params.id).update(req.body);
+
+
+
+
+        
         return res.status(200).json({ success: true });
     } catch (e) {
         return res.status(500).json({ success: false, error: e.message });
