@@ -68,12 +68,19 @@ exports.postInput = async (req, res) => {
         message: 'Noto‘g‘ri `status` qiymati. Faqat 1, 2 yoki 3 qabul qilinadi.',
       });
     }
+// Mahsulot va valyutani olish
+const product_ = await Product.query().where('id',req.body.product_id).first();
+if (!product_) {
+  return res.status(404).json({ success: false, message: 'Mahsulot topilmadi' });
+}
+const product_currency = parseFloat(product_.currency_id);
+
 
     // Qo‘llaniladigan qiymatlarni olish
     const product_id = req.body.product_id;
     const number = parseFloat(req.body.number);
     const price = parseFloat(req.body.price);
-    const currency_id = req.body.currency_id;
+    const currency_id = product_currency;
     const created = req.body.created;
 
     if (!product_id || isNaN(number) || isNaN(price)) {
@@ -164,16 +171,6 @@ exports.postInput = async (req, res) => {
 };
 
 
-
-
-
-exports.putInput = async (req, res) => {
-  try{await Input.query().findOne('id', req.params.id).update(req.body)
-    return res.status(200).json({success:true})
-  }catch(e){
-        res.status(500).json({ error: e});
-      }
-}
 
 exports.delInput = async (req, res) => {
   try {

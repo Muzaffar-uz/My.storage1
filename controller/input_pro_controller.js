@@ -1,7 +1,8 @@
 
 
 const Input_pro = require('../models/input_pro_models')
-
+const Input = require('../models/input_models')
+const Product = require('../models/product_models')
 const Counterparty = require('../models/counterparty_models')
 
 exports.getCounterparty = async (req, res) => {
@@ -168,28 +169,24 @@ exports.postInput_pro = async (req, res) => {
     }
 };
 
-exports.putInput_pro = async (req, res) => {
-    try {
-        await Input_pro.query().findOne('id', req.params.id).update(req.body);
 
-
-
-
+// const router = require('express').Router()
+const input_controller = require('../controller/input_controller').delInput
+// router.delete('/delete/:id',input_controller.delInput);
+// module.exports = router
+    exports.delInput_pro = async (req, res) => {
+      try {
+        const startId = req.params.id;
+       const input =  await Input.query().where('provider_id',startId)
+       input.id
+ console.log(input)
+          return res.status(200).json({success: true});
         
-        return res.status(200).json({ success: true });
-    } catch (e) {
+        }catch (e) {
         return res.status(500).json({ success: false, error: e.message });
+      }
     }
-};
-
-exports.delInput_pro = async (req, res) => {
-    try {
-        await Input_pro.query().where('id', req.params.id).delete();
-        return res.status(200).json({ success: true });
-    } catch (e) {
-        return res.status(500).json({ success: false, error: e.message });
-    }
-};
+    
 
 //  bu status = 1 prixod
 exports.getInput_proTime1 = async (req, res) => {

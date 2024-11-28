@@ -12,7 +12,7 @@ router.get('/getcustomer',Input_pro_controller.getCounterparty)
 
 router.post('/insert',Input_pro_controller.postInput_pro)
 
-router.put('/update/:id',Input_pro_controller.putInput_pro)
+// router.put('/update/:id',Input_pro_controller.putInput_pro)
 router.delete('/delete/:id',Input_pro_controller.delInput_pro)
 
 router.get('/time1',Input_pro_controller.getInput_proTime1)
