@@ -64,7 +64,7 @@ exports.postInput = async (req, res) => {
     // Statusni tekshirish (faqat 1, 2 yoki 3 qabul qilinadi)
     if (![1, 2, 3].includes(status)) {
       return res.status(400).json({
-        success: false,
+        success: false, 
         message: 'Noto‘g‘ri `status` qiymati. Faqat 1, 2 yoki 3 qabul qilinadi.',
       });
     }
@@ -186,7 +186,7 @@ if(input.status == 4){
 }
     const { product_id, provider_id, number, price,counterparty_id,status,currency_id} = input;
    
-
+   
     // 1. Bosilgan IDni 4-statusga yangilash
     await Input.query().where('id', startId).update({ status: 4 });
 
@@ -277,7 +277,7 @@ if(input.status == 4){
     return res.status(500).json({ success: false, error: e.message });
   }
 };
-
+ 
 
 
 exports.exportInputToExcel = async (req, res) => {

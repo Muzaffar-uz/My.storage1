@@ -170,23 +170,54 @@ exports.postInput_pro = async (req, res) => {
 };
 
 
-// const router = require('express').Router()
-const input_controller = require('../controller/input_controller').delInput
-// router.delete('/delete/:id',input_controller.delInput);
-// module.exports = router
-    exports.delInput_pro = async (req, res) => {
-      try {
-        const startId = req.params.id;
-       const input =  await Input.query().where('provider_id',startId)
-       input.id
- console.log(input)
-          return res.status(200).json({success: true});
-        
-        }catch (e) {
-        return res.status(500).json({ success: false, error: e.message });
+
+const input_controller = require('../controller/input_controller'); // input_controller'ni chaqirish
+
+exports.delInput_pro = async (req, res) => {
+  try {
+    const startId = req.params.id; // URL parametridan provider_id ni olish
+    const inputs = await Input.query().where('provider_id', startId); // Ma'lumotlarni olish
+
+    // Agar hech qanday input topilmasa
+    if (inputs.length === 0) {
+      return res.status(404).json({ success: false, message: 'No records found for the given provider_id' });
+    }
+
+    // inputs massivini tekshirish
+    console.log('Inputs:', inputs); // inputs ni tekshirish
+
+    // Har bir elementni tekshirish va funksiyani chaqirish
+    for (let i = 0; i < inputs.length; i++) {
+     
+
+      // item mavjudligini va statusni tekshirish
+      if (inputs[i] && inputs[i].status !== undefined) {
+        console.log(`Processing item with`); // Item ID ni chiqarish
+
+        // delInput funksiyasini chaqirish
+        await input_controller.delInput({
+          params: { id: inputs[i].id }, // ID uchun params
+          body: {}, // Agar delInput'da body ishlatilsa
+          query: {}, // Agar query parametrlari kerak bo‘lsa
+        });
+      } else {
+        // Agar item yoki status mavjud bo'lmasa
+        console.log(`Xato: element yoki uning status property yo'q`);
+        continue; // Keyingi yozuvga o'tish
       }
     }
+
+    // Javob qaytarish
+    return res.status(200).json({ success: true, message: 'Entries processed successfully' });
+  } catch (error) {
+    console.error('Xato:', error.message); // Xatolikni loglash
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
     
+
 
 //  bu status = 1 prixod
 exports.getInput_proTime1 = async (req, res) => {
@@ -239,7 +270,7 @@ exports.getInput_proTime2 = async (req, res) => {
   const end = endDate && endDate.trim() ? endDate : today;
 
   const knex = await Input_pro.knex();
-  try {
+  try { 
       const data = await knex.raw(
           `
           SELECT 
