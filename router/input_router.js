@@ -2,7 +2,9 @@ const router = require('express').Router()
 
 const input_controller = require('../controller/input_controller')
 
-router.get('/all/:id',input_controller.getInput)
+router.get('/all/:id', input_controller.getInput)
+// router.get('/price', input_controller.getPrice);
+
 router.post('/insert/:id',input_controller.postInput)
 
 router.delete('/delete/:id',input_controller.delInput);
